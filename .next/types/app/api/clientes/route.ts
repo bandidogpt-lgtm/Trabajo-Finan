@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 // File: C:\Users\rodri\Documents\Rodrigo Ganto Manzanedo\UPC\8 vo\Finan\Trabajo-Finan\app\api\clientes\route.ts
+=======
+// File: C:\Users\EQUIPO\Documents\Finan_Try1\Trabajo-Finan\app\api\clientes\route.ts
+>>>>>>> 9d2f379c0009e48759845fe69a4cad28f400401b
 import * as entry from '../../../../../app/api/clientes/route.js'
 import type { NextRequest } from 'next/server.js'
 

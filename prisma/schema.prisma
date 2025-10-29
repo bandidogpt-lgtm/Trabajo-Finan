@@ -14,16 +14,75 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//Entidades
+
 model Cliente {
-  id Int @id @default(autoincrement())
-  dni String
-  nombres String
-  apellidos String
+  id               Int           @id @default(autoincrement())
+  dni              String        @db.VarChar(8)
+  nombres          String
+  apellidos        String        @db.VarChar(100)
   fecha_nacimiento DateTime
   duenio_propiedad Int
-  email String
-  direccion String
-  ingreso_mensual Decimal
-  estado_civil String
-  telefono String
+  email            String        @db.VarChar(100)
+  direccion        String        @db.VarChar(150)
+  ingreso_mensual  Decimal       @db.Decimal(12, 3)
+  estado_civil     String        @db.VarChar(20)
+  telefono         String        @db.VarChar(9)
+
+  simulaciones     Simulacion[]  @relation("ClienteSimulaciones")
+}
+
+model Inmueble {
+  id                 Int           @id @default(autoincrement())
+  nombre_proyecto    String        @db.VarChar(100)
+  precio_venta       Decimal       @db.Decimal(12, 3)
+  nro_cuartos        Int
+  area_m2            Decimal       @db.Decimal(6, 2)
+  ubicacion          String        @db.VarChar(100)
+  descripcion        String?
+  tipo               String        @db.VarChar(100)
+  imagen_referencial String?       @db.VarChar(500)
+
+  simulaciones       Simulacion[]  @relation("InmuebleSimulaciones")
+}
+
+model Usuario {
+  id        Int          @id @default(autoincrement())
+  nombre    String        @db.VarChar(50)
+  apellido  String        @db.VarChar(50)
+  clave     String        @db.VarChar(50)
+  correo    String        @db.VarChar(50)
+  activo    Boolean
+  rol       String        @db.VarChar(50)
+
+  simulaciones Simulacion[] @relation("UsuarioSimulaciones")
+}
+
+model Simulacion {
+  id_simulacion           Int       @id @default(autoincrement())
+  tipo_moneda             String    @db.VarChar(20)
+  tipo_tasa               String    @db.VarChar(20)
+  tasa_interes            Decimal   @db.Decimal(6, 3)
+  fecha_inicio            DateTime
+  capitalizacion          String?   @db.VarChar(20)
+  monto_prestamo          Decimal   @db.Decimal(12, 2)
+  cuota_inicial           Decimal   @db.Decimal(10, 2)
+  cuota_mensual           Decimal   @db.Decimal(6, 2)
+  periodo_gracia          String?   @db.VarChar(20)
+  plazo_tasa_interes      Int
+  plazo_meses             Int
+  plazo_periodo_gracia    Int
+  monto_bono_bbp          Decimal?  @db.Decimal(6, 2)
+  clasificacion_bono_bbp  Int?
+  portes                  Int?
+  tem_seguro_desgravamen  Decimal?  @db.Decimal(6, 3)
+  tasa_seguro_inmueble    Decimal?  @db.Decimal(6, 3)
+
+  usuario_id  Int
+  clientes_id Int
+  inmueble_id Int
+
+  usuario     Usuario @relation(fields: [usuario_id], references: [id], name: "UsuarioSimulaciones")
+  cliente     Cliente @relation(fields: [clientes_id], references: [id], name: "ClienteSimulaciones")
+  inmueble    Inmueble @relation(fields: [inmueble_id], references: [id], name: "InmuebleSimulaciones")
 }
