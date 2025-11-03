@@ -1,23 +1,19 @@
-/*
-  Warnings:
+-- CreateTable
+CREATE TABLE "Cliente" (
+    "id" SERIAL NOT NULL,
+    "dni" VARCHAR(8) NOT NULL,
+    "nombres" TEXT NOT NULL,
+    "apellidos" VARCHAR(100) NOT NULL,
+    "fecha_nacimiento" TIMESTAMP(3) NOT NULL,
+    "duenio_propiedad" INTEGER NOT NULL,
+    "email" VARCHAR(100) NOT NULL,
+    "direccion" VARCHAR(150) NOT NULL,
+    "ingreso_mensual" DECIMAL(12,3) NOT NULL,
+    "estado_civil" VARCHAR(20) NOT NULL,
+    "telefono" VARCHAR(9) NOT NULL,
 
-  - You are about to alter the column `dni` on the `Cliente` table. The data in that column could be lost. The data in that column will be cast from `Text` to `VarChar(8)`.
-  - You are about to alter the column `apellidos` on the `Cliente` table. The data in that column could be lost. The data in that column will be cast from `Text` to `VarChar(100)`.
-  - You are about to alter the column `email` on the `Cliente` table. The data in that column could be lost. The data in that column will be cast from `Text` to `VarChar(100)`.
-  - You are about to alter the column `direccion` on the `Cliente` table. The data in that column could be lost. The data in that column will be cast from `Text` to `VarChar(150)`.
-  - You are about to alter the column `ingreso_mensual` on the `Cliente` table. The data in that column could be lost. The data in that column will be cast from `Decimal(65,30)` to `Decimal(12,3)`.
-  - You are about to alter the column `estado_civil` on the `Cliente` table. The data in that column could be lost. The data in that column will be cast from `Text` to `VarChar(20)`.
-  - You are about to alter the column `telefono` on the `Cliente` table. The data in that column could be lost. The data in that column will be cast from `Text` to `VarChar(9)`.
-
-*/
--- AlterTable
-ALTER TABLE "Cliente" ALTER COLUMN "dni" SET DATA TYPE VARCHAR(8),
-ALTER COLUMN "apellidos" SET DATA TYPE VARCHAR(100),
-ALTER COLUMN "email" SET DATA TYPE VARCHAR(100),
-ALTER COLUMN "direccion" SET DATA TYPE VARCHAR(150),
-ALTER COLUMN "ingreso_mensual" SET DATA TYPE DECIMAL(12,3),
-ALTER COLUMN "estado_civil" SET DATA TYPE VARCHAR(20),
-ALTER COLUMN "telefono" SET DATA TYPE VARCHAR(9);
+    CONSTRAINT "Cliente_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "Inmueble" (

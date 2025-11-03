@@ -1,8 +1,6 @@
 {
+  "/not-found": "app/not-found.js",
   "/page": "app/page.js",
-<<<<<<< HEAD
-  "/api/clientes/[id]/route": "app/api/clientes/[id]/route.js",
-=======
->>>>>>> 9d2f379c0009e48759845fe69a4cad28f400401b
-  "/api/clientes/route": "app/api/clientes/route.js"
+  "/api/clientes/route": "app/api/clientes/route.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js"
 }
