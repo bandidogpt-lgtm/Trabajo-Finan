@@ -177,7 +177,7 @@ export async function GET() {
     const S = PV - CI_monto - BBP_aplicado
 
     // === 3. Calcular cuota base (método francés)
-    const CuotaBase = (S * r) / (1 - Math.pow(1 + r, -n))
+    const CuotaBase = redondear((S * r) / (1 - Math.pow(1 + r, -n)), 2)
 
     // === 4. Generar matriz de pagos
     let Saldo = S
@@ -186,13 +186,13 @@ export async function GET() {
     let InteresTot = 0, AmortTot = 0, SegDesTot = 0, SegInmTot = 0, PortesTot = 0
 
     for (let k = 1; k <= n; k++) {
-      const Interes = Saldo * r
-      const Amort = CuotaBase - Interes
-      const SegDes = Saldo * TSD
-      const SegInm = PV * TSI
-      const Cuota = CuotaBase + SegDes + SegInm + Porte
-      const Flujo = -1 * Cuota
-      Saldo -= Amort
+      const Interes = redondear(Saldo * r, 2)
+      const Amort = redondear(CuotaBase - Interes, 2)
+      const SegDes = redondear(Saldo * TSD, 2)
+      const SegInm = redondear(PV * TSI, 2)
+      const Cuota = redondear(CuotaBase + SegDes + SegInm + Porte, 2)
+      const Flujo = redondear(-1 * Cuota, 2)
+      Saldo = redondear(Saldo - Amort, 2)
 
       InteresTot += Interes
       AmortTot += Amort
@@ -206,39 +206,51 @@ export async function GET() {
       ])
     }
 
-    // === 5. Calcular VAN
+    // === 5. Calcular VAN (desde la perspectiva del cliente)
     let sumaCuotas = 0
-    for (let i = 0; i < n; i++) sumaCuotas += cuotas[i] / Math.pow(1 + r, i + 1)
-    const VAN = S - sumaCuotas
+    for (let i = 0; i < n; i++) {
+    sumaCuotas += cuotas[i] / Math.pow(1 + r, i + 1)
+    }
+    const VAN = -S + sumaCuotas // positivo = inversión atractiva para el banco
 
-    // === 6. Calcular TIR (búsqueda incremental)
-    let tasaAprox = 0.01, incremento = 0.000001, valorVAN = 1
-    let iter = 0, limite = 100000
-    const flujosTIR = [-S, ...cuotas.map(c => -c)]
+    // === 6. Calcular TIR (flujo: préstamo recibido, pagos mensuales)
+    const flujosTIR = [-S, ...cuotas] // cliente paga cuotas, préstamo se recibe al inicio
+    let tasaAprox = 0.01
+    let incremento = 0.000001
+    let valorVAN = 1
+    let iter = 0
+    const limite = 100000
 
     while (Math.abs(valorVAN) > 0.0001 && iter < limite) {
-      valorVAN = flujosTIR[0]
-      for (let i = 1; i < flujosTIR.length; i++)
+    valorVAN = 0
+    for (let i = 0; i < flujosTIR.length; i++) {
         valorVAN += flujosTIR[i] / Math.pow(1 + tasaAprox, i)
-      tasaAprox += valorVAN > 0 ? incremento : -incremento
-      iter++
+    }
+    tasaAprox += valorVAN > 0 ?  incremento : -incremento
+    iter++
     }
 
     // === 7. Calcular TCEA
     const TCEA = Math.pow(1 + tasaAprox, 12) - 1
 
+    // ✅ === FUNCIÓN DE REDONDEO (PÉGALA AQUÍ ANTES DEL RETURN)
+        function redondear(num: number, dec: number = 4) {
+        return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec)
+        }
+
+    // === 8. Retornar respuesta ===
     return NextResponse.json({
       resumen: {
         tipo_tasa: simulacion.tipo_tasa,
         capitalizacion: simulacion.capitalizacion,
         tasa_ingresada: simulacion.tasa_interes,
-        TEM: r,
+        TEM: redondear(r, 6),
         monto_prestamo: simulacion.monto_prestamo,
         plazo_meses: n,
-        cuota_base: CuotaBase,
-        VAN,
-        TIR: tasaAprox,
-        TCEA
+        cuota_base: redondear(CuotaBase, 2),
+        VAN: redondear(VAN, 2),
+        TIR: redondear(tasaAprox * 100, 2) + '%',
+        TCEA: redondear(TCEA * 100, 2) + '%'
       },
       headers: ["Iter", "CuotaBase", "Interes", "Amort", "Saldo", "SegDes", "SegInm", "Porte", "Cuota", "Flujo"],
       data: Flujos
