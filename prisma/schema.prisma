@@ -76,7 +76,7 @@ model Simulacion {
   clasificacion_bono_bbp  Int?
   portes                  Int?
   costosIniciales         Decimal?  @db.Decimal(6, 2)
-  tem_seguro_desgravamen  Decimal?  @db.Decimal(6, 3)
+  tem_seguro_desgravamen  Decimal?  @db.Decimal(6,3)
   tasa_seguro_inmueble    Decimal?  @db.Decimal(6, 3)
 
   usuario_id  Int

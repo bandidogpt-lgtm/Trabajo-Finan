@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       tem_seguro_desgravamen,
       tasa_seguro_inmueble,
       portes,
+      costos_iniciales, // 🆕 nuevo campo del body
       usuario_id,
       clientes_id,
       inmueble_id
@@ -43,6 +44,7 @@ export async function POST(req: Request) {
     tem_seguro_desgravamen = tem_seguro_desgravamen ?? 0
     tasa_seguro_inmueble = tasa_seguro_inmueble ?? 0
     portes = portes ?? 0
+    costos_iniciales = costos_iniciales ?? 0 // 🆕 default 0
 
     const errores: string[] = []
 
@@ -79,12 +81,17 @@ export async function POST(req: Request) {
       errores.push('La tasa del seguro inmueble debe ser >= 0.')
     if (portes < 0)
       errores.push('El monto de portes debe ser >= 0.')
+
+    // 🆕 Nueva validación para costos iniciales
+    if (costos_iniciales < 0 || costos_iniciales > 9999.99)
+      errores.push('Los costos iniciales deben ser mayores o iguales a 0 y menores a 10,000.00.')
+
     if (!usuario_id || !clientes_id || !inmueble_id)
       errores.push('Debe incluir usuario_id, clientes_id e inmueble_id válidos.')
 
     if (errores.length > 0) {
-    console.log("⚠️ Validaciones activas:", errores)
-    return NextResponse.json({ error: errores }, { status: 400 })
+      console.log("⚠️ Validaciones activas:", errores)
+      return NextResponse.json({ error: errores }, { status: 400 })
     }
 
     // === Insertar simulación ===
@@ -107,6 +114,7 @@ export async function POST(req: Request) {
         portes,
         tem_seguro_desgravamen,
         tasa_seguro_inmueble,
+        costosIniciales: costos_iniciales, // 🆕 insert correcto (camelCase)
         usuario_id,
         clientes_id,
         inmueble_id
@@ -145,9 +153,13 @@ export async function GET() {
     const bbp = simulacion.monto_bono_bbp ? 1 : 0
     const mbbp = Number(simulacion.monto_bono_bbp) || 0
     const n = simulacion.plazo_meses
-    const TSD = Number(simulacion.tem_seguro_desgravamen) || 0
-    const TSI = Number(simulacion.tasa_seguro_inmueble) || 0
+// === Tasas correctamente convertidas desde porcentaje a fracción ===
+const TSD = parseFloat(simulacion.tem_seguro_desgravamen?.toString() || "0") / 100
+const TSI = parseFloat(simulacion.tasa_seguro_inmueble?.toString() || "0") / 100
+console.log("🧮 Debug → TSD:", TSD, "TSI:", TSI, "Tipo:", typeof simulacion.tasa_seguro_inmueble);
+
     const Porte = Number(simulacion.portes) || 0
+    const costosIniciales = Number(simulacion.costosIniciales) || 0 // 🆕
 
     // === 1. Calcular TEM (tasa efectiva mensual)
     function calcularTEM(TipoTasa: number, i: number, p: number, c: number): number {
@@ -169,76 +181,113 @@ export async function GET() {
       }
     }
 
+    // === 3. Calcular cuota base (método francés adaptado al Excel)
+  function calcularCuotaBase(
+  NC: number,            // número de cuota actual
+  N: number,             // total de cuotas
+  I: number,             // interés del periodo actual
+  TEP: number,           // tasa efectiva mensual
+  pSegDesPer: number,    // tasa de seguro desgravamen mensual
+  SII: number,           // saldo inicial
+  g: number,             // tipo de periodo de gracia (0=Sin, 1=Parcial, 2=Total)
+  pg: number             // plazo del periodo de gracia (en meses)
+): number {
+  if (NC > N) return 0;
+
+  // Si la cuota está dentro del periodo de gracia
+  if (NC <= pg) {
+    if (g === 2) return 0;     // total: no paga nada
+    if (g === 1) return I;     // parcial: paga solo interés
+  }
+
+  // Sin gracia o fuera del periodo de gracia
+  const tasa = TEP + pSegDesPer;
+  const cuotasRestantes = N - NC + 1;
+  const cuota = (SII * tasa) / (1 - Math.pow(1 + tasa, -cuotasRestantes));
+
+  return redondear(cuota, 2);
+}
+
+
+
     const r = calcularTEM(tipoTasa, i, p, c)
 
     // === 2. Calcular capital vivo (S)
     const CI_monto = PV * CI
     const BBP_aplicado = bbp === 1 ? mbbp : 0
-    const S = PV - CI_monto - BBP_aplicado
+    const S = PV - CI_monto - BBP_aplicado + costosIniciales // 🆕 incluye costos iniciales
 
     // === 3. Calcular cuota base (método francés)
-    const CuotaBase = redondear((S * r) / (1 - Math.pow(1 + r, -n)), 2)
+    //const CuotaBase = redondear((S * r) / (1 - Math.pow(1 + r, -n)), 2)
+
+    // === NUEVO CÁLCULO DE CUOTA BASE CON GRACIA
+    const g = Number(simulacion.periodo_gracia) || 0;
+    const pg = Number(simulacion.plazo_periodo_gracia) || 0;
+    const CuotaBase = calcularCuotaBase(1, n, S * r, r, TSD, S, g, pg);
 
     // === 4. Generar matriz de pagos
     let Saldo = S
     const Flujos: number[][] = []
     const cuotas: number[] = []
-    let InteresTot = 0, AmortTot = 0, SegDesTot = 0, SegInmTot = 0, PortesTot = 0
 
     for (let k = 1; k <= n; k++) {
-      const Interes = redondear(Saldo * r, 2)
-      const Amort = redondear(CuotaBase - Interes, 2)
-      const SegDes = redondear(Saldo * TSD, 2)
-      const SegInm = redondear(PV * TSI, 2)
-      const Cuota = redondear(CuotaBase + SegDes + SegInm + Porte, 2)
-      const Flujo = redondear(-1 * Cuota, 2)
-      Saldo = redondear(Saldo - Amort, 2)
+    // === Interés y amortización
+    const Interes = redondear(Saldo * r, 2);
 
-      InteresTot += Interes
-      AmortTot += Amort
-      SegDesTot += SegDes
-      SegInmTot += SegInm
-      PortesTot += Porte
-      cuotas.push(Cuota)
+    // === Seguros
+    const SegDes = redondear(-Saldo * TSD, 2);       // ✔ sobre saldo vivo
+    const SegInm = redondear(-(PV * TSI) / 12, 2); // ✅ cálculo mensual del seguro inmueble-->todo se evalua por pagos mensuales
+    const Amort = redondear(CuotaBase - Interes - (-SegDes), 2);
 
-      Flujos.push([
-        k, CuotaBase, Interes, Amort, Saldo, SegDes, SegInm, Porte, Cuota, Flujo
-      ])
-    }
+    // === Costos fijos
+    const PorteVal = redondear(-Porte, 3);
 
-    // === 5. Calcular VAN (desde la perspectiva del cliente)
+    // === Cuota total (como en Excel)
+    const Cuota = redondear(Interes + Amort - SegDes- SegInm -PorteVal, 2);
+    const Flujo = redondear(-Cuota, 2); // flujo negativo para el cliente
+
+    // === Saldo restante
+    Saldo = redondear(Saldo - Amort, 2);
+
+    cuotas.push(Cuota);
+    Flujos.push([
+      k,           // Iter
+      CuotaBase,   // Cuota base
+      Cuota,       // Cuota total
+      Interes,     // Interés
+      Amort,       // Amortización
+      SegDes,      // Seguro desgravamen
+      SegInm,      // Seguro inmueble
+      PorteVal,    // Portes
+      Saldo,       // Saldo vivo
+      Flujo        // Flujo
+    ]);
+  }
+
+
+    // === 5. Calcular VAN y TIR
     let sumaCuotas = 0
-    for (let i = 0; i < n; i++) {
-    sumaCuotas += cuotas[i] / Math.pow(1 + r, i + 1)
-    }
-    const VAN = -S + sumaCuotas // positivo = inversión atractiva para el banco
-
-    // === 6. Calcular TIR (flujo: préstamo recibido, pagos mensuales)
-    const flujosTIR = [-S, ...cuotas] // cliente paga cuotas, préstamo se recibe al inicio
-    let tasaAprox = 0.01
-    let incremento = 0.000001
-    let valorVAN = 1
-    let iter = 0
-    const limite = 100000
+    for (let i = 0; i < n; i++) sumaCuotas += cuotas[i] / Math.pow(1 + r, i + 1)
+    const VAN = -S + sumaCuotas
+    const flujosTIR = [-S, ...cuotas]
+    let tasaAprox = 0.01, incremento = 0.000001, valorVAN = 1, iter = 0, limite = 100000
 
     while (Math.abs(valorVAN) > 0.0001 && iter < limite) {
-    valorVAN = 0
-    for (let i = 0; i < flujosTIR.length; i++) {
+      valorVAN = 0
+      for (let i = 0; i < flujosTIR.length; i++) {
         valorVAN += flujosTIR[i] / Math.pow(1 + tasaAprox, i)
-    }
-    tasaAprox += valorVAN > 0 ?  incremento : -incremento
-    iter++
+      }
+      tasaAprox += valorVAN > 0 ? incremento : -incremento
+      iter++
     }
 
-    // === 7. Calcular TCEA
     const TCEA = Math.pow(1 + tasaAprox, 12) - 1
 
-    // ✅ === FUNCIÓN DE REDONDEO (PÉGALA AQUÍ ANTES DEL RETURN)
-        function redondear(num: number, dec: number = 4) {
-        return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec)
-        }
+    // === Función de redondeo
+    function redondear(num: number, dec: number = 4) {
+      return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec)
+    }
 
-    // === 8. Retornar respuesta ===
     return NextResponse.json({
       resumen: {
         tipo_tasa: simulacion.tipo_tasa,
@@ -246,13 +295,14 @@ export async function GET() {
         tasa_ingresada: simulacion.tasa_interes,
         TEM: redondear(r, 6),
         monto_prestamo: simulacion.monto_prestamo,
+        costos_iniciales: redondear(costosIniciales, 2), // 🆕 se muestra en resumen
         plazo_meses: n,
         cuota_base: redondear(CuotaBase, 2),
         VAN: redondear(VAN, 2),
         TIR: redondear(tasaAprox * 100, 2) + '%',
         TCEA: redondear(TCEA * 100, 2) + '%'
       },
-      headers: ["Iter", "CuotaBase", "Interes", "Amort", "Saldo", "SegDes", "SegInm", "Porte", "Cuota", "Flujo"],
+      headers: ["Iter", "CuotaBase", "Cuota", "Interes", "Amort",  "SegDes", "SegInm", "Porte",  "Saldo", "Flujo"],
       data: Flujos
     })
   } catch (error) {
