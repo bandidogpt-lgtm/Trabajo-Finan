@@ -54,7 +54,7 @@ export async function POST(request: Request) {
       duenio_propiedad === undefined ||
       !email ||
       !direccion ||
-      !ingreso_mensual ||
+      ingreso_mensual === undefined ||
       !estado_civil ||
       !telefono
     ) {
@@ -64,18 +64,35 @@ export async function POST(request: Request) {
       );
     }
 
+    const nacimiento = new Date(fecha_nacimiento);
+    const hoy = new Date();
+    const edad = hoy.getFullYear() - nacimiento.getFullYear() -
+      (hoy < new Date(hoy.getFullYear(), nacimiento.getMonth(), nacimiento.getDate()) ? 1 : 0);
+
+    const ingreso = parseFloat(ingreso_mensual);
+    let riesgoIngreso = 0;
+
+    if (ingreso < 1500) riesgoIngreso = 3;
+    else if (ingreso < 3000) riesgoIngreso = 2;
+    else if (ingreso < 5000) riesgoIngreso = 1;
+    else riesgoIngreso = 0.5;
+
+    const riesgoEdad = (edad / 100) * 1;
+    const cok = 5 + riesgoEdad + riesgoIngreso;
+
     const nuevoCliente = await db.cliente.create({
       data: {
         dni,
         nombres,
         apellidos,
-        fecha_nacimiento: new Date(fecha_nacimiento),
+        fecha_nacimiento: nacimiento,
         duenio_propiedad: Number(duenio_propiedad),
         email,
         direccion,
-        ingreso_mensual: parseFloat(ingreso_mensual),
+        ingreso_mensual: ingreso,
         estado_civil,
         telefono,
+        cok: cok.toFixed(2),
       },
     });
 

@@ -27,6 +27,7 @@ model Cliente {
   ingreso_mensual  Decimal       @db.Decimal(12, 3)
   estado_civil     String        @db.VarChar(20)
   telefono         String        @db.VarChar(9)
+  cok              Decimal?       @db.Decimal(6, 3)
 
   simulaciones     Simulacion[]  @relation("ClienteSimulaciones")
 }
@@ -74,6 +75,7 @@ model Simulacion {
   monto_bono_bbp          Decimal?  @db.Decimal(6, 2)
   clasificacion_bono_bbp  Int?
   portes                  Int?
+  costosIniciales         Decimal?  @db.Decimal(6, 2)
   tem_seguro_desgravamen  Decimal?  @db.Decimal(6, 3)
   tasa_seguro_inmueble    Decimal?  @db.Decimal(6, 3)
 
