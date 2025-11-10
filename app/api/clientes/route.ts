@@ -1,41 +1,99 @@
-import { NextResponse } from 'next/server';
-import {
-  addCliente,
-  listClientes,
-  validarPayload,
-} from '@/lib/clientes';
-import { ClientePayload } from '@/types/cliente';
+import { NextResponse } from "next/server";
+import db from "@/lib/db";
 
 export async function GET() {
-  return NextResponse.json(listClientes());
+  try {
+    const clientes = await db.cliente.findMany({
+      select: {
+        id: true,
+        dni: true,
+        nombres: true,
+        apellidos: true,
+        fecha_nacimiento: true,
+        duenio_propiedad: true,
+        email: true,
+        direccion: true,
+        ingreso_mensual: true,
+        estado_civil: true,
+        telefono: true,
+      },
+      orderBy: { id: "asc" },
+    });
+
+    return NextResponse.json(clientes);
+  } catch (error) {
+    console.error("Error al listar clientes:", error);
+    return NextResponse.json(
+      { error: "Error al listar clientes" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as Partial<ClientePayload>;
-  const errores = validarPayload(body);
+  try {
+    const body = await request.json();
+    const {
+      dni,
+      nombres,
+      apellidos,
+      fecha_nacimiento,
+      duenio_propiedad,
+      email,
+      direccion,
+      ingreso_mensual,
+      estado_civil,
+      telefono,
+    } = body;
 
-  if (errores.length > 0) {
-    return NextResponse.json(
-      { errores },
-      {
-        status: 400,
+    if (
+      !dni ||
+      !nombres ||
+      !apellidos ||
+      !fecha_nacimiento ||
+      duenio_propiedad === undefined ||
+      !email ||
+      !direccion ||
+      !ingreso_mensual ||
+      !estado_civil ||
+      !telefono
+    ) {
+      return NextResponse.json(
+        { error: "Todos los campos son obligatorios" },
+        { status: 400 }
+      );
+    }
+
+    const nuevoCliente = await db.cliente.create({
+      data: {
+        dni,
+        nombres,
+        apellidos,
+        fecha_nacimiento: new Date(fecha_nacimiento),
+        duenio_propiedad: Number(duenio_propiedad),
+        email,
+        direccion,
+        ingreso_mensual: parseFloat(ingreso_mensual),
+        estado_civil,
+        telefono,
       },
+    });
+
+    return NextResponse.json(nuevoCliente, { status: 201 });
+  } catch (error: any) {
+    console.error("Error al insertar cliente:", error);
+
+    if (error.code === "P2002") {
+      const campo = error.meta?.target?.[0] || "campo único";
+      return NextResponse.json(
+        { error: `El ${campo} ya existe` },
+        { status: 409 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Error al crear cliente" },
+      { status: 500 }
     );
   }
-
-  const payload: ClientePayload = {
-    dni: body.dni!,
-    nombres: body.nombres!,
-    apellidos: body.apellidos!,
-    fecha_nacimiento: body.fecha_nacimiento!,
-    duenho_propiedad: body.duenho_propiedad!,
-    email: body.email!,
-    direccion: body.direccion!,
-    ingreso_mensual: body.ingreso_mensual!,
-    estado_civil: body.estado_civil!,
-    telefono: body.telefono!,
-  };
-
-  const nuevo = addCliente(payload);
-  return NextResponse.json(nuevo, { status: 201 });
 }

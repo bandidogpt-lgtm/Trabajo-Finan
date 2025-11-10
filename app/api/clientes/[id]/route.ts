@@ -1,84 +1,107 @@
-import { NextResponse } from 'next/server';
-import {
-  deleteCliente,
-  findCliente,
-  updateCliente,
-  validarPayload,
-} from '@/lib/clientes';
-import { ClientePayload } from '@/types/cliente';
+import { NextResponse } from "next/server";
+import db from "@/lib/db";
 
-function parseId(id: string) {
-  const parsed = Number(id);
-  return Number.isInteger(parsed) ? parsed : undefined;
-}
+export async function GET(request: Request,{ params }: { params: { id: string }}) {
+  try {
+    const clienteId = parseInt(params.id);
 
-export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } },
-) {
-  const id = parseId(params.id);
-  if (typeof id === 'undefined') {
-    return NextResponse.json({ error: 'Identificador inválido' }, { status: 400 });
+    const cliente = await db.cliente.findUnique({
+      where: { id: clienteId },
+    });
+
+    if (!cliente) {
+      return NextResponse.json(
+        { error: "Cliente no encontrado" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(cliente);
+  } catch (error) {
+    console.error("❌ Error al obtener cliente:", error);
+    return NextResponse.json(
+      { error: "Error al obtener cliente" },
+      { status: 500 }
+    );
   }
-
-  const cliente = findCliente(id);
-  if (!cliente) {
-    return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-  }
-
-  return NextResponse.json(cliente);
 }
 
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: { id: string } }
 ) {
-  const id = parseId(params.id);
-  if (typeof id === 'undefined') {
-    return NextResponse.json({ error: 'Identificador inválido' }, { status: 400 });
+  try {
+    const clienteId = parseInt(params.id);
+    const body = await request.json();
+    const {
+      dni,
+      nombres,
+      apellidos,
+      fecha_nacimiento,
+      duenio_propiedad,
+      email,
+      direccion,
+      ingreso_mensual,
+      estado_civil,
+      telefono,
+    } = body;
+
+    if (
+      !dni ||
+      !nombres ||
+      !apellidos ||
+      !fecha_nacimiento ||
+      !duenio_propiedad ||
+      !email ||
+      !direccion ||
+      !ingreso_mensual ||
+      !estado_civil ||
+      !telefono
+    ) {
+      return NextResponse.json(
+        { error: "Todos los campos son obligatorios" },
+        { status: 400 }
+      );
+    }
+
+    const clienteActualizado = await db.cliente.update({
+      where: { id: clienteId },
+      data: {
+        dni,
+        nombres,
+        apellidos,
+        fecha_nacimiento: new Date(fecha_nacimiento),
+        duenio_propiedad: Number(duenio_propiedad),
+        email,
+        direccion,
+        ingreso_mensual: parseFloat(ingreso_mensual),
+        estado_civil,
+        telefono,
+      },
+    });
+
+    return NextResponse.json(clienteActualizado);
+  } catch (error: any) {
+    console.error("❌ Error al actualizar cliente:", error);
+
+    if (error.code === "P2002") {
+      const campo = error.meta?.target?.[0] || "campo único";
+      return NextResponse.json(
+        { error: `El ${campo} ya existe en otro registro` },
+        { status: 409 }
+      );
+    }
+
+    if (error.code === "P2025") {
+      return NextResponse.json(
+        { error: "Cliente no encontrado para actualizar" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Error al actualizar cliente" },
+      { status: 500 }
+    );
   }
-
-  const body = (await request.json()) as Partial<ClientePayload>;
-  const errores = validarPayload(body);
-
-  if (errores.length > 0) {
-    return NextResponse.json({ errores }, { status: 400 });
-  }
-
-  const payload: ClientePayload = {
-    dni: body.dni!,
-    nombres: body.nombres!,
-    apellidos: body.apellidos!,
-    fecha_nacimiento: body.fecha_nacimiento!,
-    duenho_propiedad: body.duenho_propiedad!,
-    email: body.email!,
-    direccion: body.direccion!,
-    ingreso_mensual: body.ingreso_mensual!,
-    estado_civil: body.estado_civil!,
-    telefono: body.telefono!,
-  };
-
-  const actualizado = updateCliente(id, payload);
-  if (!actualizado) {
-    return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-  }
-
-  return NextResponse.json(actualizado);
-}
-
-export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } },
-) {
-  const id = parseId(params.id);
-  if (typeof id === 'undefined') {
-    return NextResponse.json({ error: 'Identificador inválido' }, { status: 400 });
-  }
-
-  const eliminado = deleteCliente(id);
-  if (!eliminado) {
-    return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
-  }
-
-  return NextResponse.json({ ok: true });
 }
