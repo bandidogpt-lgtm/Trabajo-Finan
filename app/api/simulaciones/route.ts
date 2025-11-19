@@ -138,7 +138,10 @@ export async function GET() {
   try {
     // Traer la última simulación registrada
     const simulacion = await db.simulacion.findFirst({
-      orderBy: { id_simulacion: 'desc' }
+      orderBy: { id_simulacion: 'desc' },
+      include: {
+    cliente: true
+    } 
     })
     if (!simulacion)
       return NextResponse.json({ error: 'No se encontró ninguna simulación.' }, { status: 404 })
@@ -153,6 +156,8 @@ export async function GET() {
     const bbp = simulacion.monto_bono_bbp ? 1 : 0
     const mbbp = Number(simulacion.monto_bono_bbp) || 0
     const n = simulacion.plazo_meses
+    const COK = Number(simulacion.cliente.cok)   // ✔ lo pasas a fracción
+
 // === Tasas correctamente convertidas desde porcentaje a fracción ===
 const TSD = parseFloat(simulacion.tem_seguro_desgravamen?.toString() || "0") / 100
 const TSI = parseFloat(simulacion.tasa_seguro_inmueble?.toString() || "0") / 100
@@ -209,6 +214,8 @@ console.log("🧮 Debug → TSD:", TSD, "TSI:", TSI, "Tipo:", typeof simulacion.
 }
 
 
+    const COK_TEA = Number(simulacion.cliente.cok) // viene como anual decimal
+    const COK_TEM = calcularTEM(0, COK_TEA, 7, 0)  // usar rama default = mensual
 
     const r = calcularTEM(tipoTasa, i, p, c)
 
@@ -267,8 +274,8 @@ console.log("🧮 Debug → TSD:", TSD, "TSI:", TSI, "Tipo:", typeof simulacion.
 
     // === 5. Calcular VAN y TIR
     let sumaCuotas = 0
-    for (let i = 0; i < n; i++) sumaCuotas += cuotas[i] / Math.pow(1 + r, i + 1)
-    const VAN = -S + sumaCuotas
+    for (let i = 0; i < n; i++) sumaCuotas += (-cuotas[i]) / Math.pow(1 + COK_TEM, i + 1)
+    const VAN = S + sumaCuotas
     const flujosTIR = [-S, ...cuotas]
     let tasaAprox = 0.01, incremento = 0.000001, valorVAN = 1, iter = 0, limite = 100000
 
