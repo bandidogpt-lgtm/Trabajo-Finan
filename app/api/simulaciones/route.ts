@@ -131,22 +131,25 @@ export async function POST(req: Request) {
   }
 }
 
+
 // ============================================================
-// === 2️⃣ GET: Calcular simulación (Método Francés)
+// === 2️⃣ GET: Calcular simulación (Método Francés + Gracia Real BCP)
 // ============================================================
 export async function GET() {
   try {
-    // Traer la última simulación registrada
     const simulacion = await db.simulacion.findFirst({
       orderBy: { id_simulacion: 'desc' },
-      include: {
-    cliente: true
-    } 
+      include: { cliente: true }
     })
+
+
     if (!simulacion)
       return NextResponse.json({ error: 'No se encontró ninguna simulación.' }, { status: 404 })
 
-    // === Conversión a números ===
+        console.log(simulacion.cliente.cok)
+    console.log(typeof simulacion.cliente.cok)
+
+    // === Conversión de valores ===
     const tipoTasa = simulacion.tipo_tasa === 'Efectiva' ? 0 : 1
     const i = Number(simulacion.tasa_interes)
     const p = simulacion.plazo_tasa_interes
@@ -156,164 +159,209 @@ export async function GET() {
     const bbp = simulacion.monto_bono_bbp ? 1 : 0
     const mbbp = Number(simulacion.monto_bono_bbp) || 0
     const n = simulacion.plazo_meses
-    const COK = Number(simulacion.cliente.cok)   // ✔ lo pasas a fracción
 
-// === Tasas correctamente convertidas desde porcentaje a fracción ===
-const TSD = parseFloat(simulacion.tem_seguro_desgravamen?.toString() || "0") / 100
-const TSI = parseFloat(simulacion.tasa_seguro_inmueble?.toString() || "0") / 100
-console.log("🧮 Debug → TSD:", TSD, "TSI:", TSI, "Tipo:", typeof simulacion.tasa_seguro_inmueble);
+    const COK_TEA = simulacion.cliente.cok?.toNumber() ?? 0
+    const COK_TEM = Math.pow(1 + COK_TEA, 1/12) - 1
 
+    const TSD = Number(simulacion.tem_seguro_desgravamen) / 100
+    const TSI = Number(simulacion.tasa_seguro_inmueble) / 100
     const Porte = Number(simulacion.portes) || 0
-    const costosIniciales = Number(simulacion.costosIniciales) || 0 // 🆕
-
-    // === 1. Calcular TEM (tasa efectiva mensual)
-    function calcularTEM(TipoTasa: number, i: number, p: number, c: number): number {
-      if (TipoTasa === 0) {
-        switch (p) {
-          case 0: return Math.pow(1 + i, 30) - 1
-          case 1: return Math.pow(1 + i, 2) - 1
-          case 2: return i
-          case 3: return Math.pow(1 + i, 1 / 2) - 1
-          case 4: return Math.pow(1 + i, 1 / 3) - 1
-          case 5: return Math.pow(1 + i, 1 / 4) - 1
-          case 6: return Math.pow(1 + i, 1 / 6) - 1
-          default: return Math.pow(1 + i, 1 / 12) - 1
-        }
-      } else {
-        const m = c === 0 ? 360 : c === 1 ? 24 : c === 2 ? 12 : c === 3 ? 6 : c === 4 ? 4 : c === 5 ? 3 : c === 6 ? 2 : 1
-        const TEA = Math.pow(1 + i / m, m) - 1
-        return Math.pow(1 + TEA, 1 / 12) - 1
-      }
-    }
-
-    // === 3. Calcular cuota base (método francés adaptado al Excel)
-  function calcularCuotaBase(
-  NC: number,            // número de cuota actual
-  N: number,             // total de cuotas
-  I: number,             // interés del periodo actual
-  TEP: number,           // tasa efectiva mensual
-  pSegDesPer: number,    // tasa de seguro desgravamen mensual
-  SII: number,           // saldo inicial
-  g: number,             // tipo de periodo de gracia (0=Sin, 1=Parcial, 2=Total)
-  pg: number             // plazo del periodo de gracia (en meses)
+    const costosIniciales = Number(simulacion.costosIniciales) || 0
+console.log(COK_TEA)
+console.log(typeof COK_TEA)
+    // === TEM del préstamo ===
+function calcularTEM(
+  TipoTasa: number,
+  i: number,
+  p: number,
+  c: number
 ): number {
-  if (NC > N) return 0;
+  if (TipoTasa === 0) {
+    switch (p) {
+      case 0: return (1 + i) ** 30 - 1
+      case 1: return (1 + i) ** 2 - 1
+      case 2: return i
+      case 3: return (1 + i) ** 0.5 - 1
+      case 4: return (1 + i) ** (1 / 3) - 1
+      case 5: return (1 + i) ** 0.25 - 1
+      case 6: return (1 + i) ** (1 / 6) - 1
+      default: return (1 + i) ** (1 / 12) - 1
+    }
+  } else {
+    const m =
+      c === 0 ? 360 :
+      c === 1 ? 24 :
+      c === 2 ? 12 :
+      c === 3 ? 6 :
+      c === 4 ? 4 :
+      c === 5 ? 3 :
+      c === 6 ? 2 : 1
 
-  // Si la cuota está dentro del periodo de gracia
-  if (NC <= pg) {
-    if (g === 2) return 0;     // total: no paga nada
-    if (g === 1) return I;     // parcial: paga solo interés
+    const TEA = (1 + i / m) ** m - 1
+    return (1 + TEA) ** (1 / 12) - 1
   }
-
-  // Sin gracia o fuera del periodo de gracia
-  const tasa = TEP + pSegDesPer;
-  const cuotasRestantes = N - NC + 1;
-  const cuota = (SII * tasa) / (1 - Math.pow(1 + tasa, -cuotasRestantes));
-
-  return redondear(cuota, 2);
 }
 
 
-    const COK_TEA = Number(simulacion.cliente.cok) // viene como anual decimal
-    const COK_TEM = calcularTEM(0, COK_TEA, 7, 0)  // usar rama default = mensual
-
     const r = calcularTEM(tipoTasa, i, p, c)
 
-    // === 2. Calcular capital vivo (S)
+    // === Capital financiado ===
     const CI_monto = PV * CI
-    const BBP_aplicado = bbp === 1 ? mbbp : 0
-    const S = PV - CI_monto - BBP_aplicado + costosIniciales // 🆕 incluye costos iniciales
+    const BBP_aplicado = bbp ? mbbp : 0
+    const S = PV - CI_monto - BBP_aplicado + costosIniciales
 
-    // === 3. Calcular cuota base (método francés)
-    //const CuotaBase = redondear((S * r) / (1 - Math.pow(1 + r, -n)), 2)
+    // === Parámetros de gracia ===
+    const g = Number(simulacion.periodo_gracia)
+    const pg = Number(simulacion.plazo_periodo_gracia)
 
-    // === NUEVO CÁLCULO DE CUOTA BASE CON GRACIA
-    const g = Number(simulacion.periodo_gracia) || 0;
-    const pg = Number(simulacion.plazo_periodo_gracia) || 0;
-    const CuotaBase = calcularCuotaBase(1, n, S * r, r, TSD, S, g, pg);
-
-    // === 4. Generar matriz de pagos
+    // === Variables del cronograma ===
     let Saldo = S
-    const Flujos: number[][] = []
-    const cuotas: number[] = []
+    let CuotaBase = 0
+    let debeRecalcularCuota = false
 
+    const Flujos = []
+    const cuotas = []
+
+    // === Bucle del cronograma mensual ===
     for (let k = 1; k <= n; k++) {
-    // === Interés y amortización
-    const Interes = redondear(Saldo * r, 2);
+      let Interes = Saldo * r
+      let SegDes = -Saldo * TSD
+      let SegInm = -(PV * TSI) / 12
+      let PorteVal = -Porte
 
-    // === Seguros
-    const SegDes = redondear(-Saldo * TSD, 2);       // ✔ sobre saldo vivo
-    const SegInm = redondear(-(PV * TSI) / 12, 2); // ✅ cálculo mensual del seguro inmueble-->todo se evalua por pagos mensuales
-    const Amort = redondear(CuotaBase - Interes - (-SegDes), 2);
+      let Amort = 0
+      let Cuota = 0
 
-    // === Costos fijos
-    const PorteVal = redondear(-Porte, 3);
+      // === 1. PERIODO DE GRACIA ===
+      if (k <= pg && g > 0) {
 
-    // === Cuota total (como en Excel)
-    const Cuota = redondear(Interes + Amort - SegDes- SegInm -PorteVal, 2);
-    const Flujo = redondear(-Cuota, 2); // flujo negativo para el cliente
+        if (g === 2) {
+          // === Gracia Total ===
+          Cuota = 0
+          Amort = 0
+          Saldo = Saldo + Interes + (-SegDes) + (-SegInm)+(-PorteVal)
+        }
 
-    // === Saldo restante
-    Saldo = redondear(Saldo - Amort, 2);
+        if (g === 1) {
+          // === Gracia Parcial ===
+          Cuota = Interes + (-SegDes) + (-SegInm) +(-PorteVal)
+          Amort = 0
+          Saldo = Saldo
+        }
 
-    cuotas.push(Cuota);
-    Flujos.push([
-      k,           // Iter
-      CuotaBase,   // Cuota base
-      Cuota,       // Cuota total
-      Interes,     // Interés
-      Amort,       // Amortización
-      SegDes,      // Seguro desgravamen
-      SegInm,      // Seguro inmueble
-      PorteVal,    // Portes
-      Saldo,       // Saldo vivo
-      Flujo        // Flujo
-    ]);
-  }
+        if (k === pg) debeRecalcularCuota = true
 
+        cuotas.push(Number(Cuota.toFixed(2)))
+        Flujos.push([
+          k, Number(CuotaBase.toFixed(2)),
+          Number(Cuota.toFixed(2)),
+          Number(Interes.toFixed(2)),
+          Amort,
+          Number(SegDes.toFixed(2)),
+          Number(SegInm.toFixed(2)),
+          Number(PorteVal.toFixed(2)),
+          Number(Saldo.toFixed(2)),
+          Number((-Cuota).toFixed(2))
+        ])
 
-    // === 5. Calcular VAN y TIR
-    let sumaCuotas = 0
-    for (let i = 0; i < n; i++) sumaCuotas += (-cuotas[i]) / Math.pow(1 + COK_TEM, i + 1)
-    const VAN = S + sumaCuotas
-    const flujosTIR = [-S, ...cuotas]
-    let tasaAprox = 0.01, incremento = 0.000001, valorVAN = 1, iter = 0, limite = 100000
-
-    while (Math.abs(valorVAN) > 0.0001 && iter < limite) {
-      valorVAN = 0
-      for (let i = 0; i < flujosTIR.length; i++) {
-        valorVAN += flujosTIR[i] / Math.pow(1 + tasaAprox, i)
+        continue
       }
-      tasaAprox += valorVAN > 0 ? incremento : -incremento
-      iter++
+
+      // === 2. RE-CÁLCULO DE CUOTA BASE AL TERMINAR GRACIA ===
+      if (debeRecalcularCuota) {
+        const tasa = r + TSD
+        CuotaBase = (Saldo * tasa) / (1 - (1 + tasa) ** -(n - pg))
+        debeRecalcularCuota = false
+      }
+
+      // Si no hubo gracia, usar método francés normal
+      if (CuotaBase === 0) {
+        const tasa = r + TSD
+        CuotaBase = (Saldo * tasa) / (1 - (1 + tasa) ** -n)
+      }
+
+      // === 3. CUOTA NORMAL ===
+      Amort = CuotaBase - Interes - (-SegDes)
+      Cuota = Interes + Amort - SegDes - SegInm - PorteVal
+      Saldo = Saldo - Amort
+
+      cuotas.push(Number(Cuota.toFixed(2)))
+      Flujos.push([
+        k,
+        Number(CuotaBase.toFixed(2)),
+        Number(Cuota.toFixed(2)),
+        Number(Interes.toFixed(2)),
+        Number(Amort.toFixed(2)),
+        Number(SegDes.toFixed(2)),
+        Number(SegInm.toFixed(2)),
+        Number(PorteVal.toFixed(2)),
+        Number(Saldo.toFixed(2)),
+        Number((-Cuota).toFixed(2))
+      ])
     }
 
-    const TCEA = Math.pow(1 + tasaAprox, 12) - 1
+      // === 5. Calcular VAN y TIR
+      let sumaCuotas = 0
+      for (let i = 0; i < n; i++) {
+        sumaCuotas += -cuotas[i] / Math.pow(1 + COK_TEM, i + 1)
+      }
 
-    // === Función de redondeo
-    function redondear(num: number, dec: number = 4) {
-      return Math.round(num * Math.pow(10, dec)) / Math.pow(10, dec)
-    }
+      const VAN = S + sumaCuotas
 
+      // === TIR EXACTA (tu método original)
+      const flujosTIR = [-S, ...cuotas]
+      let tasaAprox = 0.01, incremento = 0.000001, valorVAN = 1, iter = 0, limite = 100000
+
+      while (Math.abs(valorVAN) > 0.0001 && iter < limite) {
+        valorVAN = 0
+        for (let i = 0; i < flujosTIR.length; i++) {
+          valorVAN += flujosTIR[i] / Math.pow(1 + tasaAprox, i)
+        }
+        tasaAprox += valorVAN > 0 ? incremento : -incremento
+        iter++
+      }
+
+      // === TCEA (tu fórmula original)
+      const TCEA = Math.pow(1 + tasaAprox, 12) - 1
+let descripcionGracia = ""
+
+if (g === 0) {
+  descripcionGracia = "Sin periodo de gracia"
+} else if (g === 1) {
+  descripcionGracia = `Gracia parcial por ${pg} meses (solo paga intereses)`
+} else if (g === 2) {
+  descripcionGracia = `Gracia total por ${pg} meses (no paga nada)`
+}
     return NextResponse.json({
+
+      
       resumen: {
         tipo_tasa: simulacion.tipo_tasa,
         capitalizacion: simulacion.capitalizacion,
         tasa_ingresada: simulacion.tasa_interes,
-        TEM: redondear(r, 6),
-        monto_prestamo: simulacion.monto_prestamo,
-        costos_iniciales: redondear(costosIniciales, 2), // 🆕 se muestra en resumen
+        TEM: Number(r.toFixed(6)),
+        saldo_financiar: PV-CI_monto,
+        costos_iniciales: costosIniciales,
+        monto_prestamo_total: S,
+        cuota_base: Number(CuotaBase.toFixed(2)),
         plazo_meses: n,
-        cuota_base: redondear(CuotaBase, 2),
-        VAN: redondear(VAN, 2),
-        TIR: redondear(tasaAprox * 100, 2) + '%',
-        TCEA: redondear(TCEA * 100, 2) + '%'
+        // 🟦 NUEVO: detalles de gracia
+        periodo_gracia_tipo: g,
+        periodo_gracia_meses: pg,
+        periodo_gracia_descripcion: descripcionGracia,
+
+       
+        VAN: Number(VAN.toFixed(2)),
+        TIR: Number((tasaAprox * 100).toFixed(2)) + "%",
+        TCEA: Number((TCEA * 100).toFixed(2)) + "%"
       },
-      headers: ["Iter", "CuotaBase", "Cuota", "Interes", "Amort",  "SegDes", "SegInm", "Porte",  "Saldo", "Flujo"],
+      headers: ["Iter","CuotaBase","Cuota","Interes","Amort","SegDes","SegInm","Porte","Saldo","Flujo"],
       data: Flujos
     })
+
   } catch (error) {
-    console.error('❌ Error en GET /simulaciones:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+    console.error("❌ Error en GET /simulaciones:", error)
+    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
+
