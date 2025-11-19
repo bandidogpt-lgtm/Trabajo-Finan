@@ -621,7 +621,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-2xl bg-brand-600 px-6 py-2 font-semibold text-white shadow disabled:opacity-50"
+                className="rounded-2xl bg-brand-600 px-6 py-2 font-semibold text-slate-500 disabled:opacity-50"
               >
                 {submitting ? 'Guardando…' : formMode === 'create' ? 'Guardar' : 'Actualizar'}
               </button>
@@ -1016,7 +1016,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-2xl bg-brand-600 px-6 py-2 font-semibold text-white shadow disabled:opacity-50"
+                className="rounded-2xl bg-brand-600 px-6 py-2 font-semibold text-slate-500 disabled:opacity-50"
               >
                 {submitting ? 'Guardando…' : formMode === 'create' ? 'Guardar' : 'Actualizar'}
               </button>
