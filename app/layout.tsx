@@ -1,23 +1,44 @@
+/* eslint-disable @next/next/no-sync-scripts */
 import './globals.css';
 import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Gestión de Clientes',
-  description: 'CRUD de clientes usando Next.js con API Routes',
+  title: 'Inmobiliaria Integral',
+  description: 'Panel de gestión para clientes e inmuebles',
 };
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
+  const tailwindConfigScript = `tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            50: '#eff6ff',
+            100: '#dbeafe',
+            200: '#bfdbfe',
+            300: '#93c5fd',
+            400: '#60a5fa',
+            500: '#3b82f6',
+            600: '#2563eb',
+            700: '#1d4ed8'
+          }
+        }
+      }
+    }
+  };`;
+
   return (
     <html lang="es">
-      <body>
-        <main>
-          <div className="container">{children}</div>
-        </main>
-      </body>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: tailwindConfigScript }} />
+        <script src="https://cdn.tailwindcss.com" />
+      </head>
+      <body className="bg-slate-100 text-slate-900">{children}</body>
     </html>
   );
 }
