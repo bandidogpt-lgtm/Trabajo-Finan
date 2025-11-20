@@ -74,10 +74,11 @@ model Simulacion {
   plazo_periodo_gracia    Int
   monto_bono_bbp          Decimal?  @db.Decimal(6, 2)
   clasificacion_bono_bbp  Int?
-  portes                  Int?
+  portes                  Decimal?  @db.Decimal(6, 2)
   costosIniciales         Decimal?  @db.Decimal(6, 2)
-  tem_seguro_desgravamen  Decimal?  @db.Decimal(6,3)
-  tasa_seguro_inmueble    Decimal?  @db.Decimal(6, 3)
+  gastosAdministrativos   Decimal?  @db.Decimal(6, 2)
+  tem_seguro_desgravamen  Decimal?  @db.Decimal(6, 6)
+  tasa_seguro_inmueble    Decimal?  @db.Decimal(6, 6)
 
   usuario_id  Int
   clientes_id Int
