@@ -11,6 +11,7 @@ CREATE TABLE "Cliente" (
     "ingreso_mensual" DECIMAL(12,3) NOT NULL,
     "estado_civil" VARCHAR(20) NOT NULL,
     "telefono" VARCHAR(9) NOT NULL,
+    "cok" DECIMAL(6,3),
 
     CONSTRAINT "Cliente_pkey" PRIMARY KEY ("id")
 );
@@ -35,7 +36,7 @@ CREATE TABLE "Usuario" (
     "id" SERIAL NOT NULL,
     "nombre" VARCHAR(50) NOT NULL,
     "apellido" VARCHAR(50) NOT NULL,
-    "clave" VARCHAR(50) NOT NULL,
+    "clave" VARCHAR(150) NOT NULL,
     "correo" VARCHAR(50) NOT NULL,
     "activo" BOOLEAN NOT NULL,
     "rol" VARCHAR(50) NOT NULL,
@@ -61,6 +62,7 @@ CREATE TABLE "Simulacion" (
     "monto_bono_bbp" DECIMAL(6,2),
     "clasificacion_bono_bbp" INTEGER,
     "portes" INTEGER,
+    "costosIniciales" DECIMAL(6,2),
     "tem_seguro_desgravamen" DECIMAL(6,3),
     "tasa_seguro_inmueble" DECIMAL(6,3),
     "usuario_id" INTEGER NOT NULL,
@@ -69,6 +71,15 @@ CREATE TABLE "Simulacion" (
 
     CONSTRAINT "Simulacion_pkey" PRIMARY KEY ("id_simulacion")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Cliente_dni_key" ON "Cliente"("dni");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Cliente_email_key" ON "Cliente"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Usuario_correo_key" ON "Usuario"("correo");
 
 -- AddForeignKey
 ALTER TABLE "Simulacion" ADD CONSTRAINT "Simulacion_usuario_id_fkey" FOREIGN KEY ("usuario_id") REFERENCES "Usuario"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

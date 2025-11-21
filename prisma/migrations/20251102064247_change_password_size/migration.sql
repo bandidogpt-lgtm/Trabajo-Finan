@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "Usuario" ALTER COLUMN "clave" SET DATA TYPE VARCHAR(150);
