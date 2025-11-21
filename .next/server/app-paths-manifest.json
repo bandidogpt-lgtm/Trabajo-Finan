@@ -1,4 +1,10 @@
 {
+<<<<<<< HEAD
   "/not-found": "app/not-found.js",
   "/api/simulaciones/route": "app/api/simulaciones/route.js"
+=======
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/page": "app/page.js",
+  "/auth/login/page": "app/auth/login/page.js"
+>>>>>>> codex/update-credit-simulator-screens
 }
