@@ -139,13 +139,36 @@ export async function POST(req: Request) {
 // ============================================================
 // === 2️⃣ GET: Calcular simulación (Método Francés + Gracia Real BCP)
 // ============================================================
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const simulacion = await db.simulacion.findFirst({
-      orderBy: { id_simulacion: 'desc' },
-      include: { cliente: true }
-    })
+    // ============================================================
+    // === 1️⃣ Obtener simulación por ID o la última
+    // ============================================================
+    const url = new URL(req.url)
+    const idParam = url.searchParams.get("id")
 
+    let simulacion
+
+    if (idParam) {
+      simulacion = await db.simulacion.findUnique({
+        where: { id_simulacion: Number(idParam) },
+        include: { cliente: true }
+      })
+
+      if (!simulacion) {
+        return NextResponse.json({ error: "No existe simulación con ese ID." }, { status: 404 })
+      }
+    } else {
+      simulacion = await db.simulacion.findFirst({
+        orderBy: { id_simulacion: "desc" },
+        include: { cliente: true }
+      })
+
+      if (!simulacion)
+        return NextResponse.json({ error: "No se encontró ninguna simulación." }, { status: 404 })
+    }
+
+    console.log(simulacion.cliente.cok)
 
     if (!simulacion)
       return NextResponse.json({ error: 'No se encontró ninguna simulación.' }, { status: 404 })
@@ -167,8 +190,8 @@ export async function GET() {
     const COK_TEA = simulacion.cliente.cok?.toNumber() ?? 0
     const COK_TEM = Math.pow(1 + COK_TEA, 1/12) - 1
 
-    const TSD = Number(simulacion.tem_seguro_desgravamen) / 100
-    const TSI = Number(simulacion.tasa_seguro_inmueble) / 100
+    const TSD = Number(simulacion.tem_seguro_desgravamen) // / 100
+    const TSI = Number(simulacion.tasa_seguro_inmueble) /// 100
     const Porte = Number(simulacion.portes) || 0
     const GADM = Number(simulacion.gastosAdministrativos) || 0
     const costosIniciales = Number(simulacion.costosIniciales) || 0
