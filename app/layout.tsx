@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Inmobiliaria Integral',
+  title: 'Mi banqito',
   description: 'Panel de gestión para clientes e inmuebles',
 };
 

@@ -1,5 +1,7 @@
 {
+  "/not-found": "app/not-found.js",
   "/page": "app/page.js",
-  "/api/inmuebles/route": "app/api/inmuebles/route.js",
-  "/api/clientes/route": "app/api/clientes/route.js"
+  "/auth/login/page": "app/auth/login/page.js",
+  "/api/clientes/route": "app/api/clientes/route.js",
+  "/api/inmuebles/route": "app/api/inmuebles/route.js"
 }
