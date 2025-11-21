@@ -22,7 +22,7 @@ export async function POST(req: Request) {
       attachments: [
         {
           filename: "Informe_Credito.pdf",
-          content: pdfBase64, // base64 directamente
+          content: pdfBase64,
         },
       ],
     });
