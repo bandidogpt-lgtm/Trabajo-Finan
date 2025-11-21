@@ -139,41 +139,41 @@ export async function POST(req: Request) {
 // ============================================================
 // === 2️⃣ GET: Calcular simulación (Método Francés + Gracia Real BCP)
 // ============================================================
-export async function GET(req: Request) {
-  try {
-    // ============================================================
-    // === 1️⃣ Obtener simulación por ID o la última
-    // ============================================================
-    const url = new URL(req.url)
-    const idParam = url.searchParams.get("id")
+ export async function GET(req: Request) {
 
-    let simulacion
+    
+try {
+// === Leer parámetros desde la URL ===
+const { searchParams } = new URL(req.url)
+const idParam = searchParams.get("id_simulacion")
 
-    if (idParam) {
-      simulacion = await db.simulacion.findUnique({
-        where: { id_simulacion: Number(idParam) },
-        include: { cliente: true }
-      })
+console.log("🔍 ID recibido:", idParam)
 
-      if (!simulacion) {
-        return NextResponse.json({ error: "No existe simulación con ese ID." }, { status: 404 })
-      }
-    } else {
-      simulacion = await db.simulacion.findFirst({
-        orderBy: { id_simulacion: "desc" },
-        include: { cliente: true }
-      })
+let simulacion
 
-      if (!simulacion)
-        return NextResponse.json({ error: "No se encontró ninguna simulación." }, { status: 404 })
-    }
+if (idParam) {
+  simulacion = await db.simulacion.findUnique({
+    where: { id_simulacion: Number(idParam) },
+    include: { cliente: true }
+  })
+} else {
+  simulacion = await db.simulacion.findFirst({
+    orderBy: { id_simulacion: "desc" },
+    include: { cliente: true }
+  })
+}
+
+if (!simulacion) {
+  return NextResponse.json(
+    { error: "No se encontró ninguna simulación." },
+    { status: 404 }
+  )
+}
+
+console.log("✔ Simulación cargada:", simulacion.id_simulacion)
+
 
     console.log(simulacion.cliente.cok)
-
-    if (!simulacion)
-      return NextResponse.json({ error: 'No se encontró ninguna simulación.' }, { status: 404 })
-
-        console.log(simulacion.cliente.cok)
     console.log(typeof simulacion.cliente.cok)
 
     // === Conversión de valores ===
