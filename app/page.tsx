@@ -31,6 +31,58 @@ type InmuebleForm = {
   imagen_referencial: string;
 };
 
+type SimulacionResumen = {
+  tipo_tasa: string;
+  capitalizacion: string | null;
+  tasa_ingresada: number;
+  TEM: number;
+  saldo_financiar: number;
+  costos_iniciales: number;
+  monto_prestamo_total: number;
+  cuota_base: number;
+  plazo_meses: number;
+  periodo_gracia_tipo: number;
+  periodo_gracia_meses: number;
+  periodo_gracia_descripcion: string;
+  VAN: number;
+  TIR: string;
+  TCEA: string;
+};
+
+type SimulacionResultado = {
+  resumen: SimulacionResumen;
+  headers: string[];
+  data: number[][];
+};
+
+type SimulacionForm = {
+  clienteBusqueda: string;
+  clienteId: number | null;
+  clienteCorreo: string;
+  clienteDni: string;
+  inmuebleBusqueda: string;
+  inmuebleId: number | null;
+  valorInmueble: number;
+  tipoMoneda: 'Soles' | 'Dólares';
+  clasificacionBbp: number;
+  montoBono: number;
+  cuotaInicial: number;
+  plazoMeses: number;
+  montoPrestamoCalculado: number;
+  fechaDesembolso: string;
+  tipoTasa: 'Efectiva' | 'Nominal';
+  plazoTasaInteres: number;
+  periodoGracia: number;
+  plazoPeriodoGracia: number;
+  capitalizacion: number;
+  tasaInteres: number;
+  temSeguroDesgravamen: number;
+  tasaSeguroInmueble: number;
+  portes: number;
+  costosIniciales: number;
+  gastosAdministrativos: number;
+};
+
 const ESTADOS_CIVILES = ['Soltero', 'Casado', 'Divorciado', 'Viudo', 'Conviviente'];
 const TIPOS_INMUEBLE = ['Departamento', 'Casa', 'Dúplex', 'Loft'];
 
@@ -115,12 +167,7 @@ export default function Home() {
               description="Selecciona una sección para comenzar a trabajar con tus clientes o propiedades."
             />
           )}
-          {activeSection === 'simulador' && (
-            <SectionPlaceholder
-              title="Simulador de crédito"
-              description="Muy pronto podrás evaluar escenarios financieros en esta sección."
-            />
-          )}
+          {activeSection === 'simulador' && <SimuladorScreen />}
         </main>
       </div>
     </div>
@@ -1041,5 +1088,623 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <span className="mb-1 block text-xs uppercase tracking-widest text-slate-400">{label}</span>
       {children}
     </label>
+  );
+}
+
+const initialSimulacionForm: SimulacionForm = {
+  clienteBusqueda: '',
+  clienteId: null,
+  clienteCorreo: '',
+  clienteDni: '',
+  inmuebleBusqueda: '',
+  inmuebleId: null,
+  valorInmueble: 0,
+  tipoMoneda: 'Soles',
+  clasificacionBbp: 0,
+  montoBono: 0,
+  cuotaInicial: 10,
+  plazoMeses: 120,
+  montoPrestamoCalculado: 0,
+  fechaDesembolso: new Date().toISOString().split('T')[0],
+  tipoTasa: 'Efectiva',
+  plazoTasaInteres: 7,
+  periodoGracia: 0,
+  plazoPeriodoGracia: 1,
+  capitalizacion: 0,
+  tasaInteres: 0,
+  temSeguroDesgravamen: 0,
+  tasaSeguroInmueble: 0,
+  portes: 0,
+  costosIniciales: 0,
+  gastosAdministrativos: 0,
+};
+
+function SimuladorScreen() {
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [inmuebles, setInmuebles] = useState<Inmueble[]>([]);
+  const [form, setForm] = useState<SimulacionForm>(initialSimulacionForm);
+  const [resultado, setResultado] = useState<SimulacionResultado | null>(null);
+  const [cronogramaFechas, setCronogramaFechas] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+
+  useEffect(() => {
+    obtenerClientes();
+    obtenerInmuebles();
+  }, []);
+
+  useEffect(() => {
+    const cuotaInicialMonto = (form.valorInmueble * form.cuotaInicial) / 100;
+    const monto =
+      Math.max(form.valorInmueble - cuotaInicialMonto - form.montoBono, 0) +
+      form.costosIniciales +
+      form.gastosAdministrativos;
+    setForm((prev) => ({ ...prev, montoPrestamoCalculado: Number(monto.toFixed(2)) }));
+  }, [
+    form.valorInmueble,
+    form.cuotaInicial,
+    form.montoBono,
+    form.costosIniciales,
+    form.gastosAdministrativos,
+  ]);
+
+  async function obtenerClientes() {
+    try {
+      const res = await fetch('/api/clientes', { cache: 'no-store' });
+      if (!res.ok) throw new Error('No se pudieron obtener clientes');
+      const data = await res.json();
+      setClientes(data);
+    } catch (error) {
+      setFeedback({ type: 'error', message: (error as Error).message });
+    }
+  }
+
+  async function obtenerInmuebles() {
+    try {
+      const res = await fetch('/api/inmuebles', { cache: 'no-store' });
+      if (!res.ok) throw new Error('No se pudieron obtener inmuebles');
+      const data = await res.json();
+      setInmuebles(data);
+    } catch (error) {
+      setFeedback({ type: 'error', message: (error as Error).message });
+    }
+  }
+
+  const clientesFiltrados = useMemo(() => {
+    if (!form.clienteBusqueda) return clientes;
+    return clientes.filter((cliente) =>
+      `${cliente.nombres} ${cliente.apellidos} ${cliente.dni}`
+        .toLowerCase()
+        .includes(form.clienteBusqueda.toLowerCase())
+    );
+  }, [clientes, form.clienteBusqueda]);
+
+  const inmueblesFiltrados = useMemo(() => {
+    if (!form.inmuebleBusqueda) return inmuebles;
+    return inmuebles.filter((inmueble) =>
+      inmueble.nombre_proyecto.toLowerCase().includes(form.inmuebleBusqueda.toLowerCase())
+    );
+  }, [inmuebles, form.inmuebleBusqueda]);
+
+  function seleccionarCliente(cliente: Cliente) {
+    setForm((prev) => ({
+      ...prev,
+      clienteId: cliente.id,
+      clienteBusqueda: `${cliente.nombres} ${cliente.apellidos}`,
+      clienteCorreo: cliente.email,
+      clienteDni: cliente.dni,
+    }));
+  }
+
+  function seleccionarInmueble(inmueble: Inmueble) {
+    setForm((prev) => ({
+      ...prev,
+      inmuebleId: inmueble.id,
+      inmuebleBusqueda: inmueble.nombre_proyecto,
+      valorInmueble: inmueble.precio_venta,
+    }));
+  }
+
+  function actualizarForm<Key extends keyof SimulacionForm>(key: Key, value: SimulacionForm[Key]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function generarFechasCronograma(totalCuotas: number) {
+    const fechas: string[] = [];
+    const base = new Date(form.fechaDesembolso);
+    for (let i = 0; i < totalCuotas; i++) {
+      const fecha = new Date(base);
+      fecha.setMonth(base.getMonth() + i);
+      fechas.push(fecha.toISOString().split('T')[0]);
+    }
+    setCronogramaFechas(fechas);
+  }
+
+  async function manejarCalculo(event: FormEvent) {
+    event.preventDefault();
+    setFeedback(null);
+
+    if (!form.clienteId || !form.inmuebleId) {
+      setFeedback({ type: 'error', message: 'Selecciona un cliente y una propiedad para continuar.' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const payload = {
+        tipo_moneda: form.tipoMoneda === 'Soles' ? 0 : 1,
+        tipo_tasa: form.tipoTasa === 'Efectiva' ? 0 : 1,
+        tasa_interes: Number(form.tasaInteres) / 100,
+        capitalizacion: Number(form.capitalizacion),
+        monto_prestamo: Number(form.valorInmueble),
+        cuota_inicial: Number(form.cuotaInicial),
+        plazo_meses: Number(form.plazoMeses),
+        fecha_inicio: form.fechaDesembolso,
+        plazo_tasa_interes: Number(form.plazoTasaInteres),
+        periodo_gracia: Number(form.periodoGracia),
+        plazo_periodo_gracia: Number(form.plazoPeriodoGracia),
+        monto_bono_bbp: Number(form.montoBono),
+        clasificacion_bono_bbp: Number(form.clasificacionBbp),
+        tem_seguro_desgravamen: Number(form.temSeguroDesgravamen) / 100,
+        tasa_seguro_inmueble: Number(form.tasaSeguroInmueble) / 100,
+        portes: Number(form.portes),
+        costos_iniciales: Number(form.costosIniciales),
+        gasto_admin: Number(form.gastosAdministrativos),
+        usuario_id: 1,
+        clientes_id: form.clienteId,
+        inmueble_id: form.inmuebleId,
+      };
+
+      const res = await fetch('/api/simulaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        const mensaje = Array.isArray(data.error) ? data.error.join(' ') : data.error;
+        throw new Error(mensaje || 'No se pudo registrar la simulación');
+      }
+
+      const simulacionId = data.simulacion?.id_simulacion;
+      if (!simulacionId) throw new Error('No se obtuvo el identificador de la simulación');
+
+      const calculo = await fetch(`/api/simulaciones?id=${simulacionId}`);
+      const resultadoCalculo = await calculo.json();
+      if (!calculo.ok) throw new Error(resultadoCalculo.error || 'No se pudo calcular la simulación');
+
+      setResultado(resultadoCalculo);
+      generarFechasCronograma(resultadoCalculo.data.length);
+      setFeedback({ type: 'success', message: 'Simulación registrada y calculada correctamente.' });
+    } catch (error) {
+      setFeedback({ type: 'error', message: (error as Error).message });
+      setResultado(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function exportarExcel() {
+    if (!resultado) return;
+    const cabecera = ['N°', 'Fecha', ...resultado.headers];
+    const filas = resultado.data.map((fila, index) => [index + 1, cronogramaFechas[index] ?? '', ...fila]);
+    const contenido = [cabecera, ...filas]
+      .map((fila) => fila.map((celda) => (typeof celda === 'number' ? celda : `${celda}`)).join(','))
+      .join('\n');
+
+    const blob = new Blob([contenido], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = 'cronograma_simulacion.csv';
+    enlace.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const contenidoResultados = resultado ? (
+    <section className="space-y-6">
+      <div className="rounded-[32px] bg-white p-6 shadow-xl">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Simulador de Créditos</h2>
+            <p className="text-sm text-slate-500">Resumen de indicadores y cronograma generado.</p>
+          </div>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setResultado(null)}
+              className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600"
+            >
+              Editar simulación
+            </button>
+            <button
+              type="button"
+              onClick={exportarExcel}
+              className="rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500"
+            >
+              Exportar a Excel
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <ResumenCard title="TCEA" value={`${resultado.resumen.TCEA}`} />
+          <ResumenCard title="VAN" value={currencyFormatter.format(resultado.resumen.VAN)} />
+          <ResumenCard title="TIR" value={resultado.resumen.TIR} />
+          <ResumenCard title="Saldo a financiar" value={currencyFormatter.format(resultado.resumen.saldo_financiar)} />
+          <ResumenCard title="Cuota base" value={currencyFormatter.format(resultado.resumen.cuota_base)} />
+          <ResumenCard title="Plazo (meses)" value={`${resultado.resumen.plazo_meses}`} />
+          <ResumenCard title="Costo inicial" value={currencyFormatter.format(resultado.resumen.costos_iniciales)} />
+          <ResumenCard title="Monto préstamo" value={currencyFormatter.format(resultado.resumen.monto_prestamo_total)} />
+        </div>
+
+        <div className="mt-8">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">Cronograma</h3>
+              <p className="text-sm text-slate-500">Detalle mensual del crédito (scroll para ver todo).</p>
+            </div>
+          </div>
+          <div className="overflow-auto rounded-3xl border border-slate-100">
+            <table className="min-w-full divide-y divide-slate-100 text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">N°</th>
+                  <th className="px-4 py-3 text-left">Fecha</th>
+                  {resultado.headers.map((header) => (
+                    <th key={header} className="px-4 py-3 text-left whitespace-nowrap">
+                      {header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {resultado.data.map((fila, index) => (
+                  <tr key={index}>
+                    <td className="px-4 py-3 text-slate-600">{index + 1}</td>
+                    <td className="px-4 py-3 text-slate-600">{cronogramaFechas[index]}</td>
+                    {fila.map((celda, celdaIndex) => (
+                      <td key={celdaIndex} className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                        {typeof celda === 'number' ? currencyFormatter.format(celda) : celda}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  ) : null;
+
+  return (
+    <section className="space-y-6">
+      <div className="flex flex-col gap-4 rounded-[32px] bg-white p-6 shadow-xl">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-900">Simulador de Créditos</h2>
+            <p className="text-sm text-slate-500">Ingresa los datos para obtener indicadores y el cronograma.</p>
+          </div>
+          <button className="rounded-2xl bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700">
+            Visualizar simulaciones
+          </button>
+        </div>
+
+        {feedback && (
+          <div
+            className={`rounded-2xl px-4 py-3 text-sm ${
+              feedback.type === 'error'
+                ? 'bg-red-50 text-red-700 ring-1 ring-red-100'
+                : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100'
+            }`}
+          >
+            {feedback.message}
+          </div>
+        )}
+
+        {!resultado && (
+          <form className="grid gap-4 md:grid-cols-2 xl:grid-cols-3" onSubmit={manejarCalculo}>
+            <Field label="Cliente">
+              <div className="relative">
+                <input
+                  value={form.clienteBusqueda}
+                  onChange={(e) => actualizarForm('clienteBusqueda', e.target.value)}
+                  placeholder="Buscar por DNI o nombre"
+                  className={`${inputBaseClasses} pr-10`}
+                />
+                <div className="absolute right-3 top-2 text-slate-400">⌄</div>
+                {form.clienteBusqueda && (
+                  <div className="absolute z-10 mt-2 max-h-48 w-full overflow-auto rounded-2xl border border-slate-100 bg-white shadow-lg">
+                    {clientesFiltrados.map((cliente) => (
+                      <button
+                        key={cliente.id}
+                        type="button"
+                        onClick={() => seleccionarCliente(cliente)}
+                        className="flex w-full flex-col items-start px-4 py-2 text-left text-sm hover:bg-slate-50"
+                      >
+                        <span className="font-semibold text-slate-800">{cliente.nombres} {cliente.apellidos}</span>
+                        <span className="text-xs text-slate-500">DNI: {cliente.dni}</span>
+                      </button>
+                    ))}
+                    {clientesFiltrados.length === 0 && (
+                      <p className="px-4 py-2 text-sm text-slate-500">Sin resultados</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Field>
+
+            <Field label="Correo">
+              <input
+                value={form.clienteCorreo}
+                readOnly
+                placeholder="Correo del cliente"
+                className={`${inputBaseClasses} bg-slate-100`}
+              />
+            </Field>
+
+            <Field label="DNI">
+              <input
+                value={form.clienteDni}
+                readOnly
+                placeholder="DNI del cliente"
+                className={`${inputBaseClasses} bg-slate-100`}
+              />
+            </Field>
+
+            <Field label="Propiedad">
+              <div className="relative">
+                <input
+                  value={form.inmuebleBusqueda}
+                  onChange={(e) => actualizarForm('inmuebleBusqueda', e.target.value)}
+                  placeholder="Buscar por nombre de proyecto"
+                  className={`${inputBaseClasses} pr-10`}
+                />
+                <div className="absolute right-3 top-2 text-slate-400">⌄</div>
+                {form.inmuebleBusqueda && (
+                  <div className="absolute z-10 mt-2 max-h-48 w-full overflow-auto rounded-2xl border border-slate-100 bg-white shadow-lg">
+                    {inmueblesFiltrados.map((inmueble) => (
+                      <button
+                        key={inmueble.id}
+                        type="button"
+                        onClick={() => seleccionarInmueble(inmueble)}
+                        className="flex w-full flex-col items-start px-4 py-2 text-left text-sm hover:bg-slate-50"
+                      >
+                        <span className="font-semibold text-slate-800">{inmueble.nombre_proyecto}</span>
+                        <span className="text-xs text-slate-500">{currencyFormatter.format(inmueble.precio_venta)}</span>
+                      </button>
+                    ))}
+                    {inmueblesFiltrados.length === 0 && (
+                      <p className="px-4 py-2 text-sm text-slate-500">Sin resultados</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Field>
+
+            <Field label="Tipo de Moneda">
+              <select
+                value={form.tipoMoneda}
+                onChange={(e) => actualizarForm('tipoMoneda', e.target.value as SimulacionForm['tipoMoneda'])}
+                className={inputBaseClasses}
+              >
+                <option value="Soles">Soles</option>
+                <option value="Dólares">Dólares</option>
+              </select>
+            </Field>
+
+            <Field label="Valor Inmueble">
+              <input
+                type="number"
+                value={form.valorInmueble}
+                onChange={(e) => actualizarForm('valorInmueble', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+              />
+            </Field>
+
+            <Field label="Clasificación Bono Buen Pagador">
+              <input
+                type="number"
+                value={form.clasificacionBbp}
+                onChange={(e) => actualizarForm('clasificacionBbp', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+              />
+            </Field>
+
+            <Field label="Monto Bono Buen Pagador">
+              <input
+                type="number"
+                value={form.montoBono}
+                onChange={(e) => actualizarForm('montoBono', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+              />
+            </Field>
+
+            <Field label="Cuota Inicial (%)">
+              <input
+                type="number"
+                value={form.cuotaInicial}
+                onChange={(e) => actualizarForm('cuotaInicial', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+                max={100}
+              />
+            </Field>
+
+            <Field label="Plazo (meses)">
+              <input
+                type="number"
+                value={form.plazoMeses}
+                onChange={(e) => actualizarForm('plazoMeses', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={1}
+              />
+            </Field>
+
+            <Field label="Monto Préstamo">
+              <input value={form.montoPrestamoCalculado} readOnly className={`${inputBaseClasses} bg-slate-100`} />
+            </Field>
+
+            <Field label="Fecha de Desembolso">
+              <input
+                type="date"
+                value={form.fechaDesembolso}
+                onChange={(e) => actualizarForm('fechaDesembolso', e.target.value)}
+                className={inputBaseClasses}
+              />
+            </Field>
+
+            <Field label="Tipo de Tasa de Interés">
+              <select
+                value={form.tipoTasa}
+                onChange={(e) => actualizarForm('tipoTasa', e.target.value as SimulacionForm['tipoTasa'])}
+                className={inputBaseClasses}
+              >
+                <option value="Efectiva">Efectiva</option>
+                <option value="Nominal">Nominal</option>
+              </select>
+            </Field>
+
+            <Field label="Plazo de tasa de interés (p)">
+              <input
+                type="number"
+                value={form.plazoTasaInteres}
+                onChange={(e) => actualizarForm('plazoTasaInteres', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+              />
+            </Field>
+
+            <Field label="Periodo de gracia (g)">
+              <select
+                value={form.periodoGracia}
+                onChange={(e) => actualizarForm('periodoGracia', Number(e.target.value))}
+                className={inputBaseClasses}
+              >
+                <option value={0}>Sin gracia</option>
+                <option value={1}>Parcial</option>
+                <option value={2}>Total</option>
+              </select>
+            </Field>
+
+            <Field label="Capitalización (c)">
+              <input
+                type="number"
+                value={form.capitalizacion}
+                onChange={(e) => actualizarForm('capitalizacion', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+              />
+            </Field>
+
+            <Field label="Periodo de gracia (pg)">
+              <input
+                type="number"
+                value={form.plazoPeriodoGracia}
+                onChange={(e) => actualizarForm('plazoPeriodoGracia', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={1}
+              />
+            </Field>
+
+            <Field label="Tasa de Interés (i)">
+              <input
+                type="number"
+                value={form.tasaInteres}
+                onChange={(e) => actualizarForm('tasaInteres', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+                step="0.01"
+              />
+            </Field>
+
+            <Field label="TEM Seguro Desgravamen">
+              <input
+                type="number"
+                value={form.temSeguroDesgravamen}
+                onChange={(e) => actualizarForm('temSeguroDesgravamen', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+                step="0.01"
+              />
+            </Field>
+
+            <Field label="Tasa Seguro Inmueble">
+              <input
+                type="number"
+                value={form.tasaSeguroInmueble}
+                onChange={(e) => actualizarForm('tasaSeguroInmueble', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+                step="0.01"
+              />
+            </Field>
+
+            <Field label="Portes">
+              <input
+                type="number"
+                value={form.portes}
+                onChange={(e) => actualizarForm('portes', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+              />
+            </Field>
+
+            <Field label="Costos iniciales">
+              <input
+                type="number"
+                value={form.costosIniciales}
+                onChange={(e) => actualizarForm('costosIniciales', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+              />
+            </Field>
+
+            <Field label="Gastos administrativos">
+              <input
+                type="number"
+                value={form.gastosAdministrativos}
+                onChange={(e) => actualizarForm('gastosAdministrativos', Number(e.target.value))}
+                className={inputBaseClasses}
+                min={0}
+              />
+            </Field>
+
+            <div className="col-span-full flex flex-wrap gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setForm(initialSimulacionForm)}
+                className="rounded-2xl border border-slate-200 px-6 py-2 font-semibold text-slate-500"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="rounded-2xl bg-brand-600 px-6 py-2 font-semibold text-white shadow hover:bg-brand-500 disabled:opacity-50"
+              >
+                {loading ? 'Calculando…' : 'Calcular'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {contenidoResultados}
+    </section>
+  );
+}
+
+function ResumenCard({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+      <p className="text-xs uppercase tracking-widest text-slate-500">{title}</p>
+      <p className="mt-2 text-lg font-semibold text-slate-900">{value}</p>
+    </div>
   );
 }
