@@ -1,4 +1,12 @@
 {
+<<<<<<< HEAD
   "/page": "app/page.js",
   "/api/simulaciones/route": "app/api/simulaciones/route.js"
+=======
+  "/not-found": "app/not-found.js",
+  "/page": "app/page.js",
+  "/auth/login/page": "app/auth/login/page.js",
+  "/api/clientes/route": "app/api/clientes/route.js",
+  "/api/inmuebles/route": "app/api/inmuebles/route.js"
+>>>>>>> codex/integrate-client-and-property-screens
 }

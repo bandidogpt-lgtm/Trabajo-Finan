@@ -1,31 +1,19 @@
-import { NextResponse } from "next/server";
-import db from "@/lib/db";
+import { NextResponse } from 'next/server';
+import db from '@/lib/db';
+import { serializeCliente } from '@/lib/serializers';
 
 export async function GET() {
   try {
     const clientes = await db.cliente.findMany({
-      select: {
-        id: true,
-        dni: true,
-        nombres: true,
-        apellidos: true,
-        fecha_nacimiento: true,
-        duenio_propiedad: true,
-        email: true,
-        direccion: true,
-        ingreso_mensual: true,
-        estado_civil: true,
-        telefono: true,
-      },
-      orderBy: { id: "asc" },
+      orderBy: { id: 'asc' },
     });
 
-    return NextResponse.json(clientes);
+    return NextResponse.json(clientes.map(serializeCliente));
   } catch (error) {
-    console.error("Error al listar clientes:", error);
+    console.error('Error al listar clientes:', error);
     return NextResponse.json(
-      { error: "Error al listar clientes" },
-      { status: 500 }
+      { error: 'Error al listar clientes' },
+      { status: 500 },
     );
   }
 }
@@ -52,24 +40,28 @@ export async function POST(request: Request) {
       !apellidos ||
       !fecha_nacimiento ||
       duenio_propiedad === undefined ||
+      duenio_propiedad === null ||
       !email ||
       !direccion ||
       ingreso_mensual === undefined ||
+      ingreso_mensual === null ||
       !estado_civil ||
       !telefono
     ) {
       return NextResponse.json(
-        { error: "Todos los campos son obligatorios" },
-        { status: 400 }
+        { error: 'Todos los campos son obligatorios' },
+        { status: 400 },
       );
     }
 
     const nacimiento = new Date(fecha_nacimiento);
     const hoy = new Date();
-    const edad = hoy.getFullYear() - nacimiento.getFullYear() -
+    const edad =
+      hoy.getFullYear() -
+      nacimiento.getFullYear() -
       (hoy < new Date(hoy.getFullYear(), nacimiento.getMonth(), nacimiento.getDate()) ? 1 : 0);
 
-    const ingreso = parseFloat(ingreso_mensual);
+    const ingreso = Number(ingreso_mensual);
     let riesgoIngreso = 0;
 
     if (ingreso < 1500) riesgoIngreso = 3;
@@ -79,6 +71,7 @@ export async function POST(request: Request) {
 
     const riesgoEdad = (edad / 100) * 1;
     const cok = 5 + riesgoEdad + riesgoIngreso;
+    const cokNumber = Number(cok.toFixed(2));
 
     const nuevoCliente = await db.cliente.create({
       data: {
@@ -92,25 +85,25 @@ export async function POST(request: Request) {
         ingreso_mensual: ingreso,
         estado_civil,
         telefono,
-        cok: cok.toFixed(2),
+        cok: cokNumber.toFixed(2),
       },
     });
 
-    return NextResponse.json(nuevoCliente, { status: 201 });
+    return NextResponse.json(serializeCliente(nuevoCliente), { status: 201 });
   } catch (error: any) {
-    console.error("Error al insertar cliente:", error);
+    console.error('Error al insertar cliente:', error);
 
-    if (error.code === "P2002") {
-      const campo = error.meta?.target?.[0] || "campo único";
+    if (error.code === 'P2002') {
+      const campo = error.meta?.target?.[0] || 'campo único';
       return NextResponse.json(
         { error: `El ${campo} ya existe` },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     return NextResponse.json(
-      { error: "Error al crear cliente" },
-      { status: 500 }
+      { error: 'Error al crear cliente' },
+      { status: 500 },
     );
   }
 }
