@@ -24,7 +24,8 @@ export async function POST(req: Request) {
       tem_seguro_desgravamen,
       tasa_seguro_inmueble,
       portes,
-      costos_iniciales, // 🆕 nuevo campo del body
+      costos_iniciales, 
+      gasto_admin, // 🆕 nuevo campo del body
       usuario_id,
       clientes_id,
       inmueble_id
@@ -81,6 +82,8 @@ export async function POST(req: Request) {
       errores.push('La tasa del seguro inmueble debe ser >= 0.')
     if (portes < 0)
       errores.push('El monto de portes debe ser >= 0.')
+    if (gasto_admin < 0)
+      errores.push('El gasto administrativo debe ser mayor o igual a 0.')
 
     // 🆕 Nueva validación para costos iniciales
     if (costos_iniciales < 0 || costos_iniciales > 9999.99)
@@ -115,6 +118,7 @@ export async function POST(req: Request) {
         tem_seguro_desgravamen,
         tasa_seguro_inmueble,
         costosIniciales: costos_iniciales, // 🆕 insert correcto (camelCase)
+        gastosAdministrativos: gasto_admin,
         usuario_id,
         clientes_id,
         inmueble_id
@@ -166,6 +170,7 @@ export async function GET() {
     const TSD = Number(simulacion.tem_seguro_desgravamen) / 100
     const TSI = Number(simulacion.tasa_seguro_inmueble) / 100
     const Porte = Number(simulacion.portes) || 0
+    const GADM = Number(simulacion.gastosAdministrativos) || 0
     const costosIniciales = Number(simulacion.costosIniciales) || 0
 console.log(COK_TEA)
 console.log(typeof COK_TEA)
@@ -228,7 +233,7 @@ function calcularTEM(
       let SegDes = -Saldo * TSD
       let SegInm = -(PV * TSI) / 12
       let PorteVal = -Porte
-
+      let GastoAdmin = -GADM
       let Amort = 0
       let Cuota = 0
 
@@ -237,14 +242,19 @@ function calcularTEM(
 
         if (g === 2) {
           // === Gracia Total ===
-          Cuota = 0
-          Amort = 0
-          Saldo = Saldo + Interes + (-SegDes) + (-SegInm)+(-PorteVal)
+          // NO paga interés
+          // NO paga amortización
+          // SOLO paga seguros + portes
+        CuotaBase = 0                // no se paga nada del préstamo
+        Amort = 0                // no hay amortización
+        Saldo = Saldo + Interes  // interés se capitaliza
+          Cuota =(-SegDes) + (-SegInm) +(-PorteVal) +(-GastoAdmin)
         }
+
 
         if (g === 1) {
           // === Gracia Parcial ===
-          Cuota = Interes + (-SegDes) + (-SegInm) +(-PorteVal)
+          Cuota = Interes + (-SegDes) + (-SegInm) +(-PorteVal) +(-GastoAdmin)
           Amort = 0
           Saldo = Saldo
         }
@@ -260,6 +270,9 @@ function calcularTEM(
           Number(SegDes.toFixed(2)),
           Number(SegInm.toFixed(2)),
           Number(PorteVal.toFixed(2)),
+          
+          Number(GastoAdmin.toFixed(2)),
+
           Number(Saldo.toFixed(2)),
           Number((-Cuota).toFixed(2))
         ])
@@ -282,7 +295,7 @@ function calcularTEM(
 
       // === 3. CUOTA NORMAL ===
       Amort = CuotaBase - Interes - (-SegDes)
-      Cuota = Interes + Amort - SegDes - SegInm - PorteVal
+      Cuota = Interes + Amort - SegDes - SegInm - PorteVal -GastoAdmin
       Saldo = Saldo - Amort
 
       cuotas.push(Number(Cuota.toFixed(2)))
@@ -295,6 +308,9 @@ function calcularTEM(
         Number(SegDes.toFixed(2)),
         Number(SegInm.toFixed(2)),
         Number(PorteVal.toFixed(2)),
+
+        Number(GastoAdmin.toFixed(2)),
+
         Number(Saldo.toFixed(2)),
         Number((-Cuota).toFixed(2))
       ])
@@ -355,7 +371,7 @@ if (g === 0) {
         TIR: Number((tasaAprox * 100).toFixed(2)) + "%",
         TCEA: Number((TCEA * 100).toFixed(2)) + "%"
       },
-      headers: ["Iter","CuotaBase","Cuota","Interes","Amort","SegDes","SegInm","Porte","Saldo","Flujo"],
+      headers: ["Iter","CuotaBase","Cuota","Interes","Amort","SegDes","SegInm","Porte","GastosAdmin","Saldo","Flujo"],
       data: Flujos
     })
 
