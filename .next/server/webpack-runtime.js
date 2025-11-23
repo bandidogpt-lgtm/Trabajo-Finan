@@ -30,7 +30,7 @@
 /******/ 		// Execute the module function
 /******/ 		var threw = true;
 /******/ 		try {
-/******/ 			__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 			__webpack_modules__[moduleId].call(module.exports, module, module.exports, __webpack_require__);
 /******/ 			threw = false;
 /******/ 		} finally {
 /******/ 			if(threw) delete __webpack_module_cache__[moduleId];
@@ -90,6 +90,18 @@
 /******/ 		};
 /******/ 	})();
 /******/ 	
+<<<<<<< HEAD
+=======
+/******/ 	/* webpack/runtime/getFullHash */
+/******/ 	(() => {
+<<<<<<< HEAD
+/******/ 		__webpack_require__.h = () => ("13b42c98a7aab64f")
+=======
+/******/ 		__webpack_require__.h = () => ("046f357a0e0f1ff5")
+>>>>>>> codex/update-credit-simulator-screens
+/******/ 	})();
+/******/ 	
+>>>>>>> ab9dc1464c2c0bfec0173daa70bc716d81298b93
 /******/ 	/* webpack/runtime/hasOwnProperty shorthand */
 /******/ 	(() => {
 /******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
