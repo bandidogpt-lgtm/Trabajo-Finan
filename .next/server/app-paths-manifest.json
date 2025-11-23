@@ -1,17 +1,7 @@
 {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-  "/not-found": "app/not-found.js",
->>>>>>> ab9dc1464c2c0bfec0173daa70bc716d81298b93
-  "/api/simulaciones/route": "app/api/simulaciones/route.js"
-=======
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-=======
-  "/api/clientes/route": "app/api/clientes/route.js",
->>>>>>> a088781 (feature(backend): Add flag with clients and properties)
   "/page": "app/page.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
   "/api/inmuebles/route": "app/api/inmuebles/route.js",
-  "/api/clientes/[id]/route": "app/api/clientes/[id]/route.js"
+  "/api/clientes/route": "app/api/clientes/route.js",
+  "/api/simulaciones/route": "app/api/simulaciones/route.js"
 }

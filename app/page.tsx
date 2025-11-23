@@ -76,6 +76,7 @@ type SimulacionForm = {
   valorInmueble: number;
   tipoMoneda: "Soles" | "Dólares";
   clasificacionBbp: number;
+  labelBbp: string;
   montoBono: number;
   cuotaInicial: number;
   plazoMeses: number;
@@ -1421,6 +1422,7 @@ const initialSimulacionForm: SimulacionForm = {
   valorInmueble: 0,
   tipoMoneda: "Soles",
   clasificacionBbp: 0,
+  labelBbp: "Sin bono",
   montoBono: 0,
   cuotaInicial: 10,
   plazoMeses: 120,
@@ -1537,28 +1539,25 @@ function SimuladorScreen() {
     };
 
     //aplica bono integrador
-    const condicion_integrador = cliente?.id ?? 999999;
+    const condicion_integrador = cliente?.flag_condiciones ?? 0;
     const edad = cliente?.fecha_nacimiento ? calcularEdad(cliente.fecha_nacimiento) : 0;
     //si cumple alguna de esas condiciones, aplica el bono integrador (y si cumple la clasificacion)
-    const aplicaIntegrador = (ingreso <= 4746 || edad >= 60 || condicion_integrador == 1);
-    const aplicaSostenible = inmueble?.id;
+    const aplicaIntegrador = (ingreso <= 4746 || edad >= 60 || condicion_integrador == true);
+    const aplicaSostenible = inmueble?.sostenible ?? false;
 
     let clasificacion = 0;
     let monto = 0;
     let etiqueta = "Sin Bono";
 
     if (aplicaIntegrador) {
-      // Bono Integrador
       clasificacion = 3;
       monto = r.inte;
       etiqueta = "BBP Integrador";
     } else if (aplicaSostenible) {
-      // Bono Sostenible (si aplica)
       clasificacion = 2;
       monto = r.sost;
       etiqueta = "BBP Sostenible";
     } else {
-      // Bono Tradicional
       clasificacion = 1;
       monto = r.trad;
       etiqueta = "BBP Tradicional";
@@ -2350,10 +2349,10 @@ function SimuladorScreen() {
 
             <Field label="Clasificación Bono Buen Pagador">
               <input
-                type="number"
-                value={form.clasificacionBbp}
+                type="text"
+                value={form.labelBbp}
                 onChange={(e) =>
-                  actualizarForm("clasificacionBbp", Number(e.target.value))
+                  actualizarForm("labelBbp", (e.target.value))
                 }
                 className={inputBaseClasses}
                 min={0}

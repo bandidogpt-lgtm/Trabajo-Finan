@@ -72,7 +72,7 @@ model Simulacion {
   plazo_tasa_interes      Int
   plazo_meses             Int
   plazo_periodo_gracia    Int
-  monto_bono_bbp          Decimal?  @db.Decimal(6, 2)
+  monto_bono_bbp          Decimal?  @db.Decimal(10,2)
   clasificacion_bono_bbp  Int?
   portes                  Decimal?  @db.Decimal(6, 2)
   costosIniciales         Decimal?  @db.Decimal(6, 2)
