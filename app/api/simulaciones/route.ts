@@ -190,8 +190,8 @@ console.log("✔ Simulación cargada:", simulacion.id_simulacion)
     const COK_TEA = simulacion.cliente.cok?.toNumber() ?? 0
     const COK_TEM = Math.pow(1 + COK_TEA, 1/12) - 1
 
-    const TSD = Number(simulacion.tem_seguro_desgravamen) // / 100
-    const TSI = Number(simulacion.tasa_seguro_inmueble) /// 100
+    const TSD = Number(simulacion.tem_seguro_desgravamen) / 100
+    const TSI = Number(simulacion.tasa_seguro_inmueble) / 100
     const Porte = Number(simulacion.portes) || 0
     const GADM = Number(simulacion.gastosAdministrativos) || 0
     const costosIniciales = Number(simulacion.costosIniciales) || 0
@@ -234,7 +234,7 @@ function calcularTEM(
     const r = calcularTEM(tipoTasa, i, p, c)
 
     // === Capital financiado ===
-    const CI_monto = PV * CI
+    const CI_monto = PV * CI //CI loe stoy guardando como porcentaje xd
     const BBP_aplicado = bbp ? mbbp : 0
     const S = PV - CI_monto - BBP_aplicado + costosIniciales
 
@@ -253,10 +253,10 @@ function calcularTEM(
     // === Bucle del cronograma mensual ===
     for (let k = 1; k <= n; k++) {
       let Interes = Saldo * r
-      let SegDes = -Saldo * TSD
-      let SegInm = -(PV * TSI) / 12
-      let PorteVal = -Porte
-      let GastoAdmin = -GADM
+      let SegDes = Number((-Saldo * TSD).toFixed(2))          // seguro desgravamen
+      let SegInm = Number((-(PV * TSI) / 12).toFixed(2))      // seguro inmueble
+      let PorteVal = Number((-Porte).toFixed(2))              // portes
+      let GastoAdmin = Number((-GADM).toFixed(2))             // gasto admin
       let Amort = 0
       let Cuota = 0
 

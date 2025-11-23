@@ -1,4 +1,3 @@
 {
-  "/not-found": "app/not-found.js",
   "/api/simulaciones/route": "app/api/simulaciones/route.js"
 }
