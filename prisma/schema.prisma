@@ -27,8 +27,8 @@ model Cliente {
   ingreso_mensual  Decimal       @db.Decimal(12, 3)
   estado_civil     String        @db.VarChar(20)
   telefono         String        @db.VarChar(9)
-  cok              Decimal?       @db.Decimal(6, 3)
-
+  cok              Decimal?      @db.Decimal(6, 3)
+  flag_condiciones Boolean?      @default(false)
   simulaciones     Simulacion[]  @relation("ClienteSimulaciones")
 }
 
@@ -42,7 +42,7 @@ model Inmueble {
   descripcion        String?
   tipo               String        @db.VarChar(100)
   imagen_referencial String?       @db.VarChar(500)
-
+  sostenible         Boolean?       @default(false)
   simulaciones       Simulacion[]  @relation("InmuebleSimulaciones")
 }
 

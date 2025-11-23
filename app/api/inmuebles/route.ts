@@ -53,6 +53,7 @@ export async function POST(req: Request) {
       descripcion,
       tipo,
       imagen_referencial,
+      sostenible, 
     } = body;
 
     if (
@@ -66,7 +67,10 @@ export async function POST(req: Request) {
       !ubicacion ||
       !tipo
     ) {
-      return NextResponse.json({ error: 'Todos los campos obligatorios deben completarse' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Todos los campos obligatorios deben completarse' },
+        { status: 400 }
+      );
     }
 
     const payload = {
@@ -78,6 +82,7 @@ export async function POST(req: Request) {
       descripcion,
       tipo,
       imagen_referencial,
+      sostenible: sostenible !== undefined ? Boolean(sostenible) : false, 
     };
 
     const nuevoInmueble = await db.inmueble.create({
@@ -108,6 +113,7 @@ export async function PUT(req: Request) {
       precio_venta: data.precio_venta !== undefined ? Number(data.precio_venta) : undefined,
       nro_cuartos: data.nro_cuartos !== undefined ? Number(data.nro_cuartos) : undefined,
       area_m2: data.area_m2 !== undefined ? Number(data.area_m2) : undefined,
+      sostenible: data.sostenible !== undefined ? Boolean(data.sostenible) : undefined, 
     };
 
     const inmuebleActualizado = await db.inmueble.update({
@@ -121,6 +127,7 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
   }
 }
+
 
 export async function DELETE(req: Request) {
   try {

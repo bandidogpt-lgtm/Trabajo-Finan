@@ -11,4 +11,5 @@ export type Cliente = {
   estado_civil: string;
   telefono: string;
   cok?: number | null;
+  flag_condiciones?: boolean;
 };

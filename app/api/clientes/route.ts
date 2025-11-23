@@ -32,6 +32,7 @@ export async function POST(request: Request) {
       ingreso_mensual,
       estado_civil,
       telefono,
+      flag_condiciones,
     } = body;
 
     if (
@@ -86,6 +87,7 @@ export async function POST(request: Request) {
         estado_civil,
         telefono,
         cok: cokNumber.toFixed(2),
+        flag_condiciones: Boolean(flag_condiciones),
       },
     });
 

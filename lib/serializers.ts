@@ -14,6 +14,7 @@ export function serializeCliente(cliente: ClienteModel) {
     estado_civil: cliente.estado_civil,
     telefono: cliente.telefono,
     cok: cliente.cok !== null ? Number(cliente.cok) : null,
+    flag_condiciones: cliente.flag_condiciones === true,
   };
 }
 
@@ -28,5 +29,6 @@ export function serializeInmueble(inmueble: InmuebleModel) {
     descripcion: inmueble.descripcion,
     tipo: inmueble.tipo,
     imagen_referencial: inmueble.imagen_referencial,
+    sostenible: inmueble.sostenible === true,
   };
 }

@@ -26,7 +26,6 @@ export async function POST(req: Request) {
         },
       ],
     });
-
     return NextResponse.json({ ok: true, response });
   } catch (error) {
     console.error("❌ Error enviando correo:", error);

@@ -8,4 +8,5 @@ export type Inmueble = {
   descripcion?: string | null;
   tipo: string;
   imagen_referencial?: string | null;
+  sostenible?: boolean;
 };

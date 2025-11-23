@@ -27,6 +27,7 @@ type ClienteForm = {
   ingreso_mensual: number;
   estado_civil: string;
   telefono: string;
+  flag_condiciones: boolean;
 };
 
 type InmuebleForm = {
@@ -38,6 +39,7 @@ type InmuebleForm = {
   descripcion: string;
   tipo: string;
   imagen_referencial: string;
+  sostenible: boolean;
 };
 
 type SimulacionResumen = {
@@ -112,6 +114,7 @@ const initialClienteForm: ClienteForm = {
   ingreso_mensual: 0,
   estado_civil: ESTADOS_CIVILES[0],
   telefono: "",
+  flag_condiciones: false,
 };
 
 const initialInmuebleForm: InmuebleForm = {
@@ -123,6 +126,7 @@ const initialInmuebleForm: InmuebleForm = {
   descripcion: "",
   tipo: TIPOS_INMUEBLE[0],
   imagen_referencial: "",
+  sostenible: false,
 };
 
 const navItems = [
@@ -466,6 +470,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
         ...formValues,
         duenio_propiedad: Number(formValues.duenio_propiedad),
         ingreso_mensual: Number(formValues.ingreso_mensual),
+        flag_condiciones: Boolean(formValues.flag_condiciones),
       };
 
       const url =
@@ -544,6 +549,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
       ingreso_mensual: cliente.ingreso_mensual,
       estado_civil: cliente.estado_civil,
       telefono: cliente.telefono,
+      flag_condiciones: cliente.flag_condiciones ?? false,
     });
   }
 
@@ -833,21 +839,39 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
                   required
                 />
               </Field>
-              <Field label="¿Es dueño de propiedad?">
-                <select
-                  className={inputBaseClasses}
-                  value={formValues.duenio_propiedad}
-                  onChange={(e) =>
-                    setFormValues({
-                      ...formValues,
-                      duenio_propiedad: Number(e.target.value),
-                    })
-                  }
-                >
-                  <option value={1}>Sí</option>
-                  <option value={0}>No</option>
-                </select>
-              </Field>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="¿Tiene discapacidad, es aplazado o inmigrante?">
+                  <select
+                    className={inputBaseClasses}
+                    value={formValues.duenio_propiedad}
+                    onChange={(e) =>
+                      setFormValues({
+                        ...formValues,
+                        duenio_propiedad: Number(e.target.value),
+                      })
+                    }
+                  >
+                    <option value={1}>Sí</option>
+                    <option value={0}>No</option>
+                  </select>
+                </Field>
+
+                <Field label="¿Acepta condiciones?">
+                  <select
+                    className={inputBaseClasses}
+                    value={formValues.flag_condiciones ? "1" : "0"}
+                    onChange={(e) =>
+                      setFormValues({
+                        ...formValues,
+                        flag_condiciones: e.target.value === "1",
+                      })
+                    }
+                  >
+                    <option value="0">No</option>
+                    <option value="1">Sí</option>
+                  </select>
+                </Field>
+              </div>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -949,6 +973,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
         precio_venta: Number(formValues.precio_venta),
         nro_cuartos: Number(formValues.nro_cuartos),
         area_m2: Number(formValues.area_m2),
+        sostenible: Boolean(formValues.sostenible),
       };
 
       const url = formMode === "create" ? "/api/inmuebles" : "/api/inmuebles";
@@ -1015,6 +1040,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
       descripcion: inmueble.descripcion || "",
       tipo: inmueble.tipo,
       imagen_referencial: inmueble.imagen_referencial || "",
+      sostenible: inmueble.sostenible ?? false,
     });
   }
 
@@ -1185,6 +1211,10 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
                   <dt className="font-semibold">Descripción</dt>
                   <dd>{detalle.descripcion || "Sin descripción registrada"}</dd>
                 </div>
+                <div>
+                  <dt className="font-semibold">Sostenible</dt>
+                  <dd>{detalle.sostenible ? "Sí" : "No"}</dd>
+                </div>
               </dl>
             </div>
           )}
@@ -1314,7 +1344,24 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
                   }
                 />
               </Field>
-              <Field label="Descripción">
+              <Field label="¿Es sostenible?">
+                <select
+                  className={inputBaseClasses}
+                  value={formValues.sostenible ? "1" : "0"}
+                  onChange={(e) =>
+                    setFormValues({
+                      ...formValues,
+                      sostenible: e.target.value === "1",
+                    })
+                  }
+                >
+                  <option value="0">No</option>
+                  <option value="1">Sí</option>
+                </select>
+              </Field>
+            </div>
+            <div className="mt-4"></div>
+            <Field label="Descripción">
                 <textarea
                   className={`${inputBaseClasses} min-h-[90px]`}
                   value={formValues.descripcion}
@@ -1325,8 +1372,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
                     })
                   }
                 />
-              </Field>
-            </div>
+            </Field>
             <div className="flex flex-wrap gap-3">
               <button
                 type="submit"

@@ -48,6 +48,7 @@ export async function PUT(
       ingreso_mensual,
       estado_civil,
       telefono,
+      flag_condiciones
     } = body;
 
     if (
@@ -81,6 +82,7 @@ export async function PUT(
       ingreso_mensual: Number(ingreso_mensual),
       estado_civil,
       telefono,
+      flag_condiciones: Boolean(flag_condiciones),
     };
 
     const clienteActualizado = await db.cliente.update({

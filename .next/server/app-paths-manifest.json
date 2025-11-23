@@ -1,5 +1,6 @@
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
   "/not-found": "app/not-found.js",
@@ -7,7 +8,10 @@
   "/api/simulaciones/route": "app/api/simulaciones/route.js"
 =======
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+=======
+  "/api/clientes/route": "app/api/clientes/route.js",
+>>>>>>> a088781 (feature(backend): Add flag with clients and properties)
   "/page": "app/page.js",
-  "/auth/login/page": "app/auth/login/page.js"
->>>>>>> codex/update-credit-simulator-screens
+  "/api/inmuebles/route": "app/api/inmuebles/route.js",
+  "/api/clientes/[id]/route": "app/api/clientes/[id]/route.js"
 }
