@@ -1474,6 +1474,105 @@ function SimuladorScreen() {
     form.gastosAdministrativos,
   ]);
 
+  // lógica de bono del buen pagador
+  useEffect(() => {
+    // Requiere cliente + inmueble seleccionado
+    if (!form.clienteId || !form.inmuebleId) {
+      setForm(prev => ({
+        ...prev,
+        clasificacionBbp: 0,
+        montoBono: 0,
+        labelBbp: "Sin Bono"
+      }));
+      return;
+    }
+
+    // Obtener cliente real desde la DB cargada
+    const cliente = clientes.find(c => c.id === form.clienteId);
+    const ingreso = cliente?.ingreso_mensual ?? 999999;
+
+    // Obtener inmueble real desde la DB
+    const inmueble = inmuebles.find(i => i.id === form.inmuebleId);
+    const PV = inmueble?.precio_venta ?? 0;
+
+    if (!PV) {
+      setForm(prev => ({
+        ...prev,
+        clasificacionBbp: 0,
+        montoBono: 0,
+        labelBbp: "Sin Bono"
+      }));
+      return;
+    }
+
+    // Rangos oficiales MiVivienda
+    const rangos = [
+      { min: 68800,  max: 98100,  trad: 27400, sost: 33700, inte: 31000 },
+      { min: 98100,  max: 146900, trad: 22800, sost: 29100, inte: 26400 },
+      { min: 146900, max: 244600, trad: 20900, sost: 27200, inte: 24500 },
+      { min: 244600, max: 362100, trad: 7800,  sost: 14100, inte: 11400 },
+    ];
+
+    const r = rangos.find(x => PV >= x.min && PV <= x.max);
+
+    if (!r) {
+      setForm(prev => ({
+        ...prev,
+        clasificacionBbp: 0,
+        montoBono: 0,
+        labelBbp: "Sin Bono"
+      }));
+      return;
+    }
+
+    const calcularEdad = (fechaNacimiento: string): number => {
+      const fechaNacimientoDate = new Date(fechaNacimiento);
+      const hoy = new Date();
+      const edad = hoy.getFullYear() - fechaNacimientoDate.getFullYear();
+      const mes = hoy.getMonth() - fechaNacimientoDate.getMonth();
+      if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNacimientoDate.getDate())) {
+        return edad - 1; // Si el cumpleaños aún no ha pasado en este año
+      }
+      return edad;
+    };
+
+    //aplica bono integrador
+    const condicion_integrador = cliente?.id ?? 999999;
+    const edad = cliente?.fecha_nacimiento ? calcularEdad(cliente.fecha_nacimiento) : 0;
+    //si cumple alguna de esas condiciones, aplica el bono integrador (y si cumple la clasificacion)
+    const aplicaIntegrador = (ingreso <= 4746 || edad >= 60 || condicion_integrador == 1);
+    const aplicaSostenible = inmueble?.id;
+
+    let clasificacion = 0;
+    let monto = 0;
+    let etiqueta = "Sin Bono";
+
+    if (aplicaIntegrador) {
+      // Bono Integrador
+      clasificacion = 3;
+      monto = r.inte;
+      etiqueta = "BBP Integrador";
+    } else if (aplicaSostenible) {
+      // Bono Sostenible (si aplica)
+      clasificacion = 2;
+      monto = r.sost;
+      etiqueta = "BBP Sostenible";
+    } else {
+      // Bono Tradicional
+      clasificacion = 1;
+      monto = r.trad;
+      etiqueta = "BBP Tradicional";
+    }
+
+    setForm(prev => ({
+      ...prev,
+      clasificacionBbp: clasificacion,
+      montoBono: monto,
+      labelBbp: etiqueta
+    }));
+
+  }, [form.clienteId, form.inmuebleId]);
+
   async function obtenerClientes() {
     try {
       const res = await fetch("/api/clientes", { cache: "no-store" });
