@@ -1687,8 +1687,8 @@ function SimuladorScreen() {
         plazo_periodo_gracia: Number(form.plazoPeriodoGracia),
         monto_bono_bbp: Number(form.montoBono),
         clasificacion_bono_bbp: Number(form.clasificacionBbp),
-        tem_seguro_desgravamen: Number(form.temSeguroDesgravamen) / 100,
-        tasa_seguro_inmueble: Number(form.tasaSeguroInmueble) / 100,
+        tem_seguro_desgravamen: Number(form.temSeguroDesgravamen),
+        tasa_seguro_inmueble: Number(form.tasaSeguroInmueble),
         portes: Number(form.portes),
         costos_iniciales: Number(form.costosIniciales),
         gasto_admin: Number(form.gastosAdministrativos),
@@ -2095,9 +2095,9 @@ function SimuladorScreen() {
             title="Plazo (meses)"
             value={`${resultado.resumen.plazo_meses}`}
           />
-          <ResumenCard
-            title="TEM"
-            value={currencyFormatter.format(resultado.resumen.TEM)}
+          <ResumenCard 
+            title="TEM" 
+            value={`% ${resultado.resumen.TEM.toFixed(2)}`} 
           />
           <ResumenCard
             title="Monto préstamo"
