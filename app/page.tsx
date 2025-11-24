@@ -1462,8 +1462,7 @@ function SimuladorScreen() {
     const cuotaInicialMonto = (form.valorInmueble * form.cuotaInicial) / 100;
     const monto =
       Math.max(form.valorInmueble - cuotaInicialMonto - form.montoBono, 0) +
-      form.costosIniciales +
-      form.gastosAdministrativos;
+      form.costosIniciales
     setForm((prev) => ({
       ...prev,
       montoPrestamoCalculado: Number(monto.toFixed(2)),
