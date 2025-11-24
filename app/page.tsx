@@ -2097,7 +2097,7 @@ function SimuladorScreen() {
           />
           <ResumenCard 
             title="TEM" 
-            value={`% ${resultado.resumen.TEM.toFixed(5)}`} 
+            value={` ${(resultado.resumen.TEM*100).toFixed(5)}%`} 
           />
           <ResumenCard
             title="Monto préstamo"
