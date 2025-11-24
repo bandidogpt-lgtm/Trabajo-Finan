@@ -1676,7 +1676,7 @@ function SimuladorScreen() {
       const payload = {
         tipo_moneda: form.tipoMoneda === "Soles" ? 0 : 1,
         tipo_tasa: form.tipoTasa === "Efectiva" ? 0 : 1,
-        tasa_interes: Number(form.tasaInteres) / 100,
+        tasa_interes: Number(form.tasaInteres),
         capitalizacion: Number(form.capitalizacion),
         monto_prestamo: Number(form.valorInmueble),
         cuota_inicial: Number(form.cuotaInicial),
@@ -2096,8 +2096,8 @@ function SimuladorScreen() {
             value={`${resultado.resumen.plazo_meses}`}
           />
           <ResumenCard
-            title="Costo inicial"
-            value={currencyFormatter.format(resultado.resumen.costos_iniciales)}
+            title="TEM"
+            value={currencyFormatter.format(resultado.resumen.TEM)}
           />
           <ResumenCard
             title="Monto préstamo"

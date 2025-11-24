@@ -178,7 +178,7 @@ console.log("✔ Simulación cargada:", simulacion.id_simulacion)
 
     // === Conversión de valores ===
     const tipoTasa = simulacion.tipo_tasa === 'Efectiva' ? 0 : 1
-    const i = Number(simulacion.tasa_interes)
+    const i = Number(simulacion.tasa_interes) / 100
     const p = simulacion.plazo_tasa_interes
     const c = Number(simulacion.capitalizacion)
     const PV = Number(simulacion.monto_prestamo)
