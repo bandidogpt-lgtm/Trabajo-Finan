@@ -141,11 +141,46 @@ export async function POST(req: Request) {
 // ============================================================
  export async function GET(req: Request) {
 
-    
+
 try {
 // === Leer parámetros desde la URL ===
 const { searchParams } = new URL(req.url)
-const idParam = searchParams.get("id_simulacion")
+const listMode = searchParams.has("list") || searchParams.get("mode") === "list"
+const search = searchParams.get("search")?.toLowerCase() ?? ""
+const idParam =
+  searchParams.get("id_simulacion") ?? searchParams.get("id") ?? undefined
+
+if (listMode) {
+  const where = search
+    ? {
+        OR: [
+          { cliente: { dni: { contains: search } } },
+          { cliente: { nombres: { contains: search, mode: "insensitive" } } },
+          { cliente: { apellidos: { contains: search, mode: "insensitive" } } },
+          { inmueble: { nombre_proyecto: { contains: search, mode: "insensitive" } } },
+        ],
+      }
+    : {}
+
+  const simulaciones = await db.simulacion.findMany({
+    where,
+    orderBy: { id_simulacion: "desc" },
+    include: { cliente: true, inmueble: true },
+  })
+
+  return NextResponse.json(
+    simulaciones.map((sim) => ({
+      id: sim.id_simulacion,
+      fecha: sim.fecha_inicio,
+      clienteNombre: `${sim.cliente.nombres} ${sim.cliente.apellidos}`.trim(),
+      clienteDni: sim.cliente.dni,
+      propiedad: sim.inmueble.nombre_proyecto,
+      tasaInteres: Number(sim.tasa_interes),
+      montoPrestamo: Number(sim.monto_prestamo),
+      moneda: sim.tipo_moneda,
+    }))
+  )
+}
 
 console.log("🔍 ID recibido:", idParam)
 
@@ -154,12 +189,12 @@ let simulacion
 if (idParam) {
   simulacion = await db.simulacion.findUnique({
     where: { id_simulacion: Number(idParam) },
-    include: { cliente: true }
+    include: { cliente: true, inmueble: true }
   })
 } else {
   simulacion = await db.simulacion.findFirst({
     orderBy: { id_simulacion: "desc" },
-    include: { cliente: true }
+    include: { cliente: true, inmueble: true }
   })
 }
 
@@ -169,12 +204,6 @@ if (!simulacion) {
     { status: 404 }
   )
 }
-
-console.log("✔ Simulación cargada:", simulacion.id_simulacion)
-
-
-    console.log(simulacion.cliente.cok)
-    console.log(typeof simulacion.cliente.cok)
 
     // === Conversión de valores ===
     const tipoTasa = simulacion.tipo_tasa === 'Efectiva' ? 0 : 1
@@ -373,8 +402,34 @@ if (g === 0) {
   descripcionGracia = `Gracia total por ${pg} meses (no paga nada)`
 }
     return NextResponse.json({
+      simulacion: {
+        id: simulacion.id_simulacion,
+        clienteId: simulacion.clientes_id,
+        clienteNombre: `${simulacion.cliente.nombres} ${simulacion.cliente.apellidos}`.trim(),
+        clienteDni: simulacion.cliente.dni,
+        clienteCorreo: simulacion.cliente.email,
+        inmuebleId: simulacion.inmueble_id,
+        inmuebleNombre: simulacion.inmueble.nombre_proyecto,
+        valorInmueble: Number(simulacion.monto_prestamo),
+        tipoMoneda: simulacion.tipo_moneda,
+        clasificacionBbp: simulacion.clasificacion_bono_bbp ?? 0,
+        montoBono: Number(simulacion.monto_bono_bbp ?? 0),
+        cuotaInicial: Number(simulacion.cuota_inicial),
+        plazoMeses: simulacion.plazo_meses,
+        fechaDesembolso: simulacion.fecha_inicio.toISOString().split("T")[0],
+        tipoTasa: simulacion.tipo_tasa,
+        plazoTasaInteres: simulacion.plazo_tasa_interes,
+        periodoGracia: Number(simulacion.periodo_gracia),
+        plazoPeriodoGracia: simulacion.plazo_periodo_gracia,
+        capitalizacion: Number(simulacion.capitalizacion),
+        tasaInteres: Number(simulacion.tasa_interes),
+        temSeguroDesgravamen: Number(simulacion.tem_seguro_desgravamen ?? 0),
+        tasaSeguroInmueble: Number(simulacion.tasa_seguro_inmueble ?? 0),
+        portes: Number(simulacion.portes ?? 0),
+        costosIniciales: Number(simulacion.costosIniciales ?? 0),
+        gastosAdministrativos: Number(simulacion.gastosAdministrativos ?? 0),
+      },
 
-      
       resumen: {
         tipo_tasa: simulacion.tipo_tasa,
         capitalizacion: simulacion.capitalizacion,

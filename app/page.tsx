@@ -65,6 +65,46 @@ type SimulacionResultado = {
   resumen: SimulacionResumen;
   headers: string[];
   data: number[][];
+  simulacion?: SimulacionDetalle;
+};
+
+type SimulacionDetalle = {
+  id: number;
+  clienteId: number;
+  clienteNombre: string;
+  clienteDni: string;
+  clienteCorreo: string;
+  inmuebleId: number;
+  inmuebleNombre: string;
+  valorInmueble: number;
+  tipoMoneda: string;
+  clasificacionBbp: number;
+  montoBono: number;
+  cuotaInicial: number;
+  plazoMeses: number;
+  fechaDesembolso: string;
+  tipoTasa: string;
+  plazoTasaInteres: number;
+  periodoGracia: number;
+  plazoPeriodoGracia: number;
+  capitalizacion: number;
+  tasaInteres: number;
+  temSeguroDesgravamen: number;
+  tasaSeguroInmueble: number;
+  portes: number;
+  costosIniciales: number;
+  gastosAdministrativos: number;
+};
+
+type SimulacionListItem = {
+  id: number;
+  fecha: string;
+  clienteNombre: string;
+  clienteDni: string;
+  propiedad: string;
+  tasaInteres: number;
+  montoPrestamo: number;
+  moneda: string;
 };
 
 type SimulacionForm = {
@@ -1490,11 +1530,22 @@ function SimuladorScreen() {
     type: "error" | "success";
     message: string;
   } | null>(null);
+  const [viewMode, setViewMode] = useState<"form" | "list">("form");
+  const [simulaciones, setSimulaciones] = useState<SimulacionListItem[]>([]);
+  const [simulacionesLoading, setSimulacionesLoading] = useState(false);
+  const [simulacionesError, setSimulacionesError] = useState<string | null>(null);
+  const [simulacionSearch, setSimulacionSearch] = useState("");
 
   useEffect(() => {
     obtenerClientes();
     obtenerInmuebles();
   }, []);
+
+  useEffect(() => {
+    if (viewMode === "list") {
+      cargarSimulaciones(simulacionSearch);
+    }
+  }, [viewMode, simulacionSearch]);
 
   useEffect(() => {
     const cuotaInicialMonto = (form.valorInmueble * form.cuotaInicial) / 100;
@@ -1607,7 +1658,7 @@ function SimuladorScreen() {
       labelBbp: etiqueta
     }));
 
-  }, [form.clienteId, form.inmuebleId]);
+  }, [form.clienteId, form.inmuebleId, clientes, inmuebles]);
 
   async function obtenerClientes() {
     try {
@@ -1631,6 +1682,25 @@ function SimuladorScreen() {
     }
   }
 
+  async function cargarSimulaciones(busqueda = "") {
+    try {
+      setSimulacionesLoading(true);
+      setSimulacionesError(null);
+      const query = busqueda
+        ? `/api/simulaciones?list=1&search=${encodeURIComponent(busqueda)}`
+        : "/api/simulaciones?list=1";
+
+      const res = await fetch(query, { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudieron obtener simulaciones");
+      setSimulaciones(data);
+    } catch (error) {
+      setSimulacionesError((error as Error).message);
+    } finally {
+      setSimulacionesLoading(false);
+    }
+  }
+
   const clientesFiltrados = useMemo(() => {
     if (!form.clienteBusqueda) return clientes;
     return clientes.filter((cliente) =>
@@ -1649,6 +1719,19 @@ function SimuladorScreen() {
     );
   }, [inmuebles, form.inmuebleBusqueda]);
 
+  const simulacionesFiltradas = useMemo(() => {
+    if (!simulacionSearch) return simulaciones;
+    return simulaciones.filter((sim) => {
+      const texto = `${sim.clienteNombre} ${sim.clienteDni} ${sim.propiedad}`.toLowerCase();
+      return texto.includes(simulacionSearch.toLowerCase());
+    });
+  }, [simulacionSearch, simulaciones]);
+
+  const sugerenciasSimulaciones = useMemo(() => {
+    if (!simulacionSearch) return [] as SimulacionListItem[];
+    return simulacionesFiltradas.slice(0, 5);
+  }, [simulacionSearch, simulacionesFiltradas]);
+
   function updateNumericString(key: keyof SimulacionForm, value: string) {
     const sanitized = value
       .replace(/[^0-9.]/g, "") // solo números y punto
@@ -1658,6 +1741,24 @@ function SimuladorScreen() {
       ...prev,
       [key]: sanitized,
     }));
+  }
+
+  function calcularFechasDesde(baseDate: string, totalCuotas: number) {
+    const fechas: string[] = [];
+    const base = new Date(baseDate);
+    for (let i = 0; i < totalCuotas; i++) {
+      const fecha = new Date(base);
+      fecha.setMonth(base.getMonth() + i);
+      fechas.push(fecha.toISOString().split("T")[0]);
+    }
+    setCronogramaFechas(fechas);
+  }
+
+  function obtenerEtiquetaBbp(clasificacion: number) {
+    if (clasificacion === 3) return "BBP Integrador";
+    if (clasificacion === 2) return "BBP Sostenible";
+    if (clasificacion === 1) return "BBP Tradicional";
+    return "Sin Bono";
   }
 
   function seleccionarCliente(cliente: Cliente) {
@@ -1769,6 +1870,56 @@ function SimuladorScreen() {
     } catch (error) {
       setFeedback({ type: "error", message: (error as Error).message });
       setResultado(null);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function verSimulacion(simulacionId: number) {
+    setFeedback(null);
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/simulaciones?id_simulacion=${simulacionId}`);
+      const data: SimulacionResultado = await res.json();
+      if (!res.ok) throw new Error((data as any).error || "No se pudo cargar la simulación");
+
+      const detalle = data.simulacion;
+      if (detalle) {
+        setForm((prev) => ({
+          ...prev,
+          clienteBusqueda: detalle.clienteNombre,
+          clienteId: detalle.clienteId,
+          clienteCorreo: detalle.clienteCorreo,
+          clienteDni: detalle.clienteDni,
+          inmuebleBusqueda: detalle.inmuebleNombre,
+          inmuebleId: detalle.inmuebleId,
+          valorInmueble: detalle.valorInmueble,
+          tipoMoneda: detalle.tipoMoneda as SimulacionForm["tipoMoneda"],
+          clasificacionBbp: detalle.clasificacionBbp,
+          labelBbp: obtenerEtiquetaBbp(detalle.clasificacionBbp),
+          montoBono: detalle.montoBono,
+          cuotaInicial: detalle.cuotaInicial,
+          plazoMeses: detalle.plazoMeses,
+          fechaDesembolso: detalle.fechaDesembolso,
+          tipoTasa: detalle.tipoTasa as SimulacionForm["tipoTasa"],
+          plazoTasaInteres: detalle.plazoTasaInteres,
+          periodoGracia: detalle.periodoGracia,
+          plazoPeriodoGracia: detalle.plazoPeriodoGracia,
+          capitalizacion: detalle.capitalizacion,
+          tasaInteres: detalle.tasaInteres,
+          temSeguroDesgravamen: detalle.temSeguroDesgravamen,
+          tasaSeguroInmueble: detalle.tasaSeguroInmueble,
+          portes: detalle.portes,
+          costosIniciales: detalle.costosIniciales,
+          gastosAdministrativos: detalle.gastosAdministrativos,
+        }));
+        calcularFechasDesde(detalle.fechaDesembolso, data.data.length);
+      }
+
+      setResultado(data);
+      setViewMode("form");
+    } catch (error) {
+      setFeedback({ type: "error", message: (error as Error).message });
     } finally {
       setLoading(false);
     }
@@ -2077,6 +2228,132 @@ function SimuladorScreen() {
     XLSX.writeFile(wb, "SimulacionCredito.xlsx", { compression: true });
   }
 
+  if (viewMode === "list") {
+    return (
+      <section className="space-y-6">
+        <div className="rounded-[32px] bg-white p-6 shadow-xl">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">
+                Simulaciones registradas
+              </h2>
+              <p className="text-sm text-slate-500">
+                Busca por DNI, nombre o propiedad para revisar tus cálculos previos.
+              </p>
+            </div>
+            <button
+              className="rounded-2xl bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700"
+              onClick={() => setViewMode("form")}
+            >
+              Volver al simulador
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="relative w-full sm:max-w-sm">
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Buscar simulación
+              </label>
+              <input
+                value={simulacionSearch}
+                onChange={(e) => setSimulacionSearch(e.target.value)}
+                placeholder="DNI, nombre o propiedad"
+                className={`${inputBaseClasses} pr-10`}
+              />
+              <div className="absolute right-3 top-9 text-slate-400">⌄</div>
+              {simulacionSearch && (
+                <div className="absolute z-10 mt-2 max-h-48 w-full overflow-auto rounded-2xl border border-slate-100 bg-white shadow-lg">
+                  {sugerenciasSimulaciones.map((sim) => (
+                    <button
+                      key={sim.id}
+                      type="button"
+                      className="flex w-full flex-col items-start px-4 py-2 text-left text-sm hover:bg-slate-50"
+                      onClick={() => {
+                        setSimulacionSearch(`${sim.clienteNombre} ${sim.clienteDni}`);
+                        cargarSimulaciones(`${sim.clienteNombre} ${sim.clienteDni}`);
+                      }}
+                    >
+                      <span className="font-semibold text-slate-800">{sim.clienteNombre}</span>
+                      <span className="text-xs text-slate-500">{sim.clienteDni} · {sim.propiedad}</span>
+                    </button>
+                  ))}
+                  {sugerenciasSimulaciones.length === 0 && (
+                    <p className="px-4 py-2 text-sm text-slate-500">Sin resultados</p>
+                  )}
+                </div>
+              )}
+            </div>
+            <button
+              className="rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500"
+              onClick={() => cargarSimulaciones(simulacionSearch)}
+              disabled={simulacionesLoading}
+            >
+              {simulacionesLoading ? "Buscando…" : "Visualizar simulaciones"}
+            </button>
+          </div>
+
+          {simulacionesError && (
+            <div className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-100">
+              {simulacionesError}
+            </div>
+          )}
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-100 text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 text-left">N°</th>
+                  <th className="px-4 py-3 text-left">Cliente</th>
+                  <th className="px-4 py-3 text-left">Propiedad</th>
+                  <th className="px-4 py-3 text-left">Monto préstamo</th>
+                  <th className="px-4 py-3 text-left">Tasa de interés</th>
+                  <th className="px-4 py-3 text-left">Fecha</th>
+                  <th className="px-4 py-3 text-left">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white">
+                {simulacionesFiltradas.map((sim, index) => (
+                  <tr key={sim.id}>
+                    <td className="px-4 py-3 text-slate-600">{index + 1}</td>
+                    <td className="px-4 py-3 text-slate-800">
+                      <div className="font-semibold">{sim.clienteNombre}</div>
+                      <div className="text-xs text-slate-500">DNI: {sim.clienteDni}</div>
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{sim.propiedad}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {currencyFormatter.format(sim.montoPrestamo)}
+                    </td>
+                    <td className="px-4 py-3 text-slate-600">{sim.tasaInteres}%</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      {new Date(sim.fecha).toLocaleDateString("es-PE")}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => verSimulacion(sim.id)}
+                        className="rounded-2xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-brand-500"
+                        disabled={loading}
+                      >
+                        Ver más
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {simulacionesFiltradas.length === 0 && !simulacionesLoading && (
+                  <tr>
+                    <td colSpan={7} className="px-4 py-6 text-center text-slate-500">
+                      No hay simulaciones registradas con ese criterio.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   const contenidoResultados = resultado ? (
     <section className="space-y-6">
       <div className="rounded-[32px] bg-white p-6 shadow-xl">
@@ -2211,7 +2488,11 @@ function SimuladorScreen() {
               Ingresa los datos para obtener indicadores y el cronograma.
             </p>
           </div>
-          <button className="rounded-2xl bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700">
+          <button
+            className="rounded-2xl bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700"
+            onClick={() => setViewMode("list")}
+            type="button"
+          >
             Visualizar simulaciones
           </button>
         </div>
