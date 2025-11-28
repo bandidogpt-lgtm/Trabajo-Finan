@@ -5,6 +5,7 @@ import {
   FocusEvent,
   ReactNode,
   useEffect,
+  useCallback,
   useMemo,
   useState,
   useRef,
@@ -154,7 +155,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <div className="mx-auto flex min-h-screen max-w-7xl gap-4 p-4 sm:p-6">
+        <div className="flex min-h-screen gap-4 p-4 sm:p-6">
         <Sidebar activeSection={activeSection} onSelect={setActiveSection} />
 
         <main className="flex-1 space-y-6">
@@ -188,9 +189,7 @@ export default function Home() {
           {activeSection === "propiedades" && (
             <InmueblesScreen searchTerm={globalSearch} />
           )}
-          {activeSection === "inicio" && (
-            <InicioScreen searchTerm={globalSearch} />
-          )}
+           {activeSection === "inicio" && <InicioScreen />}
           {activeSection === "simulador" && <SimuladorScreen />}
         </main>
       </div>
@@ -378,386 +377,291 @@ function DashboardHeader({
   );
 }
 
-function SectionPlaceholder({
-  title,
-  description,
-}: {
-  title: string;
-  description: string;
-}) {
-  return (
-    <section className="rounded-[32px] bg-white p-10 text-center shadow-xl">
-      <h2 className="text-2xl font-semibold text-slate-900">{title}</h2>
-      <p className="mt-4 text-slate-500">{description}</p>
-    </section>
-  );
-}
 
-function InicioScreen({ searchTerm }: { searchTerm: string }) {
+function InicioScreen() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [inmuebles, setInmuebles] = useState<Inmueble[]>([]);
-  const [filtros, setFiltros] = useState({
-    cliente: "todos",
-    propiedad: "todas",
-    estado: "todas",
-    tipo: "todos",
-  });
-  const [textoBusqueda, setTextoBusqueda] = useState("");
+  const [simulaciones, setSimulaciones] = useState<SimulacionResultado[]>([]);
+  const [filtroSimulacion, setFiltroSimulacion] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetch("/api/clientes")
-      .then((r) => r.json())
-      .then((data) => setClientes(Array.isArray(data) ? data : []))
-      .catch(() => setClientes([]));
+  const cargarResumen = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [clientesRes, inmueblesRes, simulacionesRes] = await Promise.all([
+        fetch("/api/clientes", { cache: "no-store" }),
+        fetch("/api/inmuebles", { cache: "no-store" }),
+        fetch("/api/simulaciones", { cache: "no-store" }),
+      ]);
 
-    fetch("/api/inmuebles")
-      .then((r) => r.json())
-      .then((data) => setInmuebles(Array.isArray(data) ? data : []))
-      .catch(() => setInmuebles([]));
+      const [clientesData, inmueblesData, simulacionesData] =
+        await Promise.all([
+          clientesRes.json(),
+          inmueblesRes.json(),
+          simulacionesRes.json(),
+        ]);
+
+      if (!clientesRes.ok)
+        throw new Error(
+          clientesData.error || "No se pudo obtener la lista de clientes"
+        );
+      if (!inmueblesRes.ok)
+        throw new Error(
+          inmueblesData.error || "No se pudo obtener la lista de propiedades"
+        );
+      if (!simulacionesRes.ok)
+        throw new Error(
+          simulacionesData.error || "No se pudo obtener las simulaciones"
+        );
+
+      setClientes(Array.isArray(clientesData) ? clientesData : []);
+      setInmuebles(Array.isArray(inmueblesData) ? inmueblesData : []);
+
+      const listaSimulaciones = Array.isArray(simulacionesData)
+        ? simulacionesData
+        : simulacionesData
+        ? [simulacionesData]
+        : [];
+      setSimulaciones(
+        listaSimulaciones.filter(Boolean) as SimulacionResultado[]
+      );
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const simulacionesRecientes = useMemo(
-    () => [
-      {
-        id: 3021,
-        cliente: "María Rojas",
-        propiedad: "Eco Towers Miraflores",
-        monto: 286400,
-        plazo: 180,
-        estado: "En evaluación",
-        tipo: "Hipotecario",
-        fecha: "2024-08-05",
-        moneda: "Soles",
-      },
-      {
-        id: 3012,
-        cliente: "Carlos Quispe",
-        propiedad: "Residencial Andina",
-        monto: 198000,
-        plazo: 240,
-        estado: "Aprobada",
-        tipo: "MiVivienda",
-        fecha: "2024-07-22",
-        moneda: "Soles",
-      },
-      {
-        id: 2988,
-        cliente: "Lucía Fernández",
-        propiedad: "Condominio Pacífico",
-        monto: 120000,
-        plazo: 120,
-        estado: "Observada",
-        tipo: "Reprogramación",
-        fecha: "2024-07-15",
-        moneda: "Dólares",
-      },
-    ],
-    []
+  useEffect(() => {
+    cargarResumen();
+  }, [cargarResumen]);
+
+  const valorPortafolio = useMemo(
+    () =>
+      inmuebles.reduce(
+        (total, inmueble) => total + Number(inmueble.precio_venta || 0),
+        0
+      ),
+    [inmuebles]
   );
 
   const simulacionesFiltradas = useMemo(() => {
-    const texto = `${searchTerm} ${textoBusqueda}`.toLowerCase();
+    const criterio = filtroSimulacion.trim().toLowerCase();
+    if (!criterio) return simulaciones;
 
-    return simulacionesRecientes.filter((sim) => {
-      const coincideTexto =
-        texto.trim().length === 0 ||
-        `${sim.cliente} ${sim.propiedad} ${sim.estado}`
-          .toLowerCase()
-          .includes(texto);
+    return simulaciones.filter((simulacion) => {
+      const resumen = simulacion.resumen;
+      if (!resumen) return false;
 
-      const coincideCliente =
-        filtros.cliente === "todos" || sim.cliente === filtros.cliente;
-      const coincidePropiedad =
-        filtros.propiedad === "todas" || sim.propiedad === filtros.propiedad;
-      const coincideEstado =
-        filtros.estado === "todas" || sim.estado === filtros.estado;
-      const coincideTipo = filtros.tipo === "todos" || sim.tipo === filtros.tipo;
+      const texto = [
+        resumen.periodo_gracia_descripcion,
+        resumen.tipo_tasa,
+        resumen.capitalizacion ?? undefined,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
 
-      return (
-        coincideTexto &&
-        coincideCliente &&
-        coincidePropiedad &&
-        coincideEstado &&
-        coincideTipo
-      );
+      return texto.includes(criterio);
     });
-  }, [filtros, simulacionesRecientes, searchTerm, textoBusqueda]);
-
-  const indicadores = [
-    { titulo: "Total de clientes activos", valor: clientes.length },
-    { titulo: "Propiedades disponibles", valor: inmuebles.length },
-    { titulo: "Simulaciones recientes", valor: simulacionesRecientes.length },
-    { titulo: "Tendencia", valor: "En crecimiento" },
-  ];
+  }, [filtroSimulacion, simulaciones]);
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[32px] bg-gradient-to-r from-brand-600 via-brand-500 to-amber-400 p-6 text-white shadow-xl">
-        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+      <div className="rounded-[32px] bg-white p-8 shadow-xl">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-widest text-white/70">
-              Panel de simulaciones recientes
-            </p>
-            <h2 className="text-2xl font-semibold leading-tight">
-              Sigue el estado de tus clientes y propiedades en un solo lugar
+            <h2 className="text-2xl font-semibold text-slate-900">
+              Panorama general
             </h2>
-            <p className="mt-2 text-sm text-white/80">
-              Busca, filtra y prioriza las simulaciones para tomar decisiones más
-              rápido.
+            <p className="text-sm text-slate-500">
+              Datos actualizados desde tus clientes, propiedades y simulaciones.
             </p>
           </div>
-          <div className="grid w-full max-w-md grid-cols-2 gap-3 text-sm md:max-w-lg">
-            {indicadores.map((item) => (
-              <div
-                key={item.titulo}
-                className="rounded-2xl bg-white/10 p-3 backdrop-blur"
-              >
-                <p className="text-xs uppercase tracking-widest text-white/80">
-                  {item.titulo}
-                </p>
-                <p className="mt-1 text-lg font-semibold">{item.valor}</p>
-              </div>
-            ))}
+          <div className="flex flex-col gap-2 text-sm text-slate-500 sm:items-end">
+            <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-slate-700">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              Información en vivo
+            </span>
+            {loading && <span>Cargando datos…</span>}
+            {error && <span className="text-rose-500">{error}</span>}
           </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <IndicatorCard
+            title="Clientes activos"
+            value={clientes.length.toLocaleString("es-PE")}
+            helper="Registrados en la plataforma"
+          />
+          <IndicatorCard
+            title="Propiedades"
+            value={inmuebles.length.toLocaleString("es-PE")}
+            helper="Portafolio disponible"
+          />
+          <IndicatorCard
+            title="Valor del portafolio"
+            value={currencyFormatter.format(valorPortafolio)}
+            helper="Precio de lista acumulado"
+          />
+          <IndicatorCard
+            title="Simulaciones recientes"
+            value={simulaciones.length.toString()}
+            helper="Últimos cálculos guardados"
+          />
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1.1fr]">
-        <article className="rounded-[32px] bg-white p-6 shadow-xl">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h3 className="text-xl font-semibold text-slate-900">
-                Buscador y filtros inteligentes
-              </h3>
-              <p className="text-sm text-slate-500">
-                Por cliente, propiedad, estado de simulación, fecha o tipo de
-                crédito.
-              </p>
+      <div className="rounded-[32px] bg-white p-8 shadow-xl">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-xl font-semibold text-slate-900">
+              Simulaciones recientes
+            </h3>
+            <p className="text-sm text-slate-500">
+              Los valores se muestran solo si la API los entrega.
+            </p>
+          </div>
+          <input
+            value={filtroSimulacion}
+            onChange={(event) => setFiltroSimulacion(event.target.value)}
+            placeholder="Filtrar por tipo de tasa o periodo de gracia"
+            className={`${inputBaseClasses} sm:w-80`}
+          />
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          {simulacionesFiltradas.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-center text-slate-500">
+              {loading
+                ? "Obteniendo simulaciones guardadas..."
+                : "Todavía no hay simulaciones registradas"}
             </div>
-            <input
-              className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-700 focus:border-brand-400 focus:outline-none focus:ring-0 sm:w-60"
-              value={textoBusqueda}
-              onChange={(e) => setTextoBusqueda(e.target.value)}
-              placeholder="Buscar en simulaciones"
-            />
-          </div>
+          )}
 
-          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <label className="text-sm font-semibold text-slate-600">
-              <span className="mb-1 block text-xs uppercase tracking-widest text-slate-400">
-                Cliente
-              </span>
-              <select
-                value={filtros.cliente}
-                onChange={(e) =>
-                  setFiltros((prev) => ({ ...prev, cliente: e.target.value }))
-                }
-                className={inputBaseClasses}
-              >
-                <option value="todos">Todos</option>
-                {clientes.map((cliente) => (
-                  <option
-                    key={cliente.id}
-                    value={`${cliente.nombres} ${cliente.apellidos}`}
-                  >
-                    {cliente.nombres} {cliente.apellidos}
-                  </option>
-                ))}
-              </select>
-            </label>
+          {simulacionesFiltradas.slice(0, 4).map((simulacion, index) => (
+            <article
+              key={index}
+              className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-6"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-slate-500">
+                    Simulación #{index + 1}
+                  </p>
+                  {simulacion.resumen?.periodo_gracia_descripcion && (
+                    <p className="text-sm font-semibold text-slate-900">
+                      {simulacion.resumen.periodo_gracia_descripcion}
+                    </p>
+                  )}
+                </div>
+                {simulacion.resumen?.tipo_tasa && (
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700 shadow-sm">
+                    {simulacion.resumen.tipo_tasa}
+                  </span>
+                )}
+              </div>
 
-            <label className="text-sm font-semibold text-slate-600">
-              <span className="mb-1 block text-xs uppercase tracking-widest text-slate-400">
-                Propiedad
-              </span>
-              <select
-                value={filtros.propiedad}
-                onChange={(e) =>
-                  setFiltros((prev) => ({ ...prev, propiedad: e.target.value }))
-                }
-                className={inputBaseClasses}
-              >
-                <option value="todas">Todas</option>
-                {inmuebles.map((inmueble) => (
-                  <option key={inmueble.id} value={inmueble.nombre_proyecto}>
-                    {inmueble.nombre_proyecto}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="text-sm font-semibold text-slate-600">
-              <span className="mb-1 block text-xs uppercase tracking-widest text-slate-400">
-                Estado de simulación
-              </span>
-              <select
-                value={filtros.estado}
-                onChange={(e) =>
-                  setFiltros((prev) => ({ ...prev, estado: e.target.value }))
-                }
-                className={inputBaseClasses}
-              >
-                <option value="todas">Todos</option>
-                <option value="Aprobada">Aprobadas</option>
-                <option value="En evaluación">En evaluación</option>
-                <option value="Observada">Observadas</option>
-              </select>
-            </label>
-
-            <label className="text-sm font-semibold text-slate-600">
-              <span className="mb-1 block text-xs uppercase tracking-widest text-slate-400">
-                Tipo de crédito
-              </span>
-              <select
-                value={filtros.tipo}
-                onChange={(e) =>
-                  setFiltros((prev) => ({ ...prev, tipo: e.target.value }))
-                }
-                className={inputBaseClasses}
-              >
-                <option value="todos">Todos</option>
-                <option value="MiVivienda">MiVivienda</option>
-                <option value="Hipotecario">Hipotecario</option>
-                <option value="Reprogramación">Reprogramación</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="mt-6 grid gap-4 lg:grid-cols-2">
-            {simulacionesFiltradas.map((sim) => (
-              <div
-                key={sim.id}
-                className="flex flex-col justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-2">
+              <dl className="grid grid-cols-2 gap-3 text-sm text-slate-700">
+                {simulacion.resumen?.saldo_financiar !== undefined && (
                   <div>
-                    <p className="text-xs uppercase tracking-widest text-slate-400">
-                      Cliente asociado
-                    </p>
-                    <p className="text-base font-semibold text-slate-900">
-                      {sim.cliente}
-                    </p>
-                    <p className="text-sm text-slate-500">{sim.propiedad}</p>
+                    <dt className="text-xs uppercase tracking-wide text-slate-500">
+                      Saldo a financiar
+                    </dt>
+                    <dd className="font-semibold">
+                      {currencyFormatter.format(
+                        simulacion.resumen.saldo_financiar
+                      )}
+                    </dd>
                   </div>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      sim.estado === "Aprobada"
-                        ? "bg-emerald-100 text-emerald-700"
-                        : sim.estado === "En evaluación"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-rose-100 text-rose-700"
-                    }`}
-                  >
-                    {sim.estado}
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                  <span className="rounded-xl bg-white px-3 py-1 font-semibold text-slate-800">
-                    {currencyFormatter.format(sim.monto)}
-                  </span>
-                  <span className="rounded-xl bg-white px-3 py-1">{sim.plazo} meses</span>
-                  <span className="rounded-xl bg-white px-3 py-1">{sim.moneda}</span>
-                  <span className="rounded-xl bg-white px-3 py-1">{sim.tipo}</span>
-                  <span className="text-xs text-slate-500">{sim.fecha}</span>
-                </div>
-              </div>
-            ))}
-
-            {simulacionesFiltradas.length === 0 && (
-              <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
-                No hay simulaciones que coincidan con los filtros.
-              </p>
-            )}
-          </div>
-        </article>
-
-        <article className="rounded-[32px] bg-white p-6 shadow-xl">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-xs uppercase tracking-widest text-brand-600">
-                Indicadores principales
-              </p>
-              <h3 className="text-xl font-semibold text-slate-900">
-                Salud del portafolio
-              </h3>
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-widest text-slate-400">
-                Total de clientes activos
-              </p>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">
-                {clientes.length}
-              </p>
-              <p className="text-sm text-slate-500">Con datos listos para simular</p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-widest text-slate-400">
-                Propiedades disponibles
-              </p>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">
-                {inmuebles.length}
-              </p>
-              <p className="text-sm text-slate-500">Listas para asignar a clientes</p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-widest text-slate-400">
-                Simulaciones realizadas
-              </p>
-              <p className="mt-2 text-3xl font-semibold text-slate-900">
-                {simulacionesRecientes.length}
-              </p>
-              <p className="text-sm text-slate-500">Últimos 30 días</p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs uppercase tracking-widest text-slate-400">
-                Por estado de simulación
-              </p>
-              <div className="mt-2 space-y-1 text-sm text-slate-600">
-                <div className="flex items-center justify-between">
-                  <span>Aprobadas</span>
-                  <span className="font-semibold text-emerald-700">
-                    {
-                      simulacionesRecientes.filter(
-                        (sim) => sim.estado === "Aprobada"
-                      ).length
-                    }
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>En evaluación</span>
-                  <span className="font-semibold text-amber-700">
-                    {
-                      simulacionesRecientes.filter(
-                        (sim) => sim.estado === "En evaluación"
-                      ).length
-                    }
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Observadas</span>
-                  <span className="font-semibold text-rose-700">
-                    {
-                      simulacionesRecientes.filter(
-                        (sim) => sim.estado === "Observada"
-                      ).length
-                    }
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
+                )}
+                {simulacion.resumen?.monto_prestamo_total !== undefined && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-slate-500">
+                      Monto total
+                    </dt>
+                    <dd className="font-semibold">
+                      {currencyFormatter.format(
+                        simulacion.resumen.monto_prestamo_total
+                      )}
+                    </dd>
+                  </div>
+                )}
+                {simulacion.resumen?.cuota_base !== undefined && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-slate-500">
+                      Cuota base
+                    </dt>
+                    <dd className="font-semibold">
+                      {currencyFormatter.format(simulacion.resumen.cuota_base)}
+                    </dd>
+                  </div>
+                )}
+                {simulacion.resumen?.plazo_meses !== undefined && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-slate-500">
+                      Plazo
+                    </dt>
+                    <dd className="font-semibold">
+                      {simulacion.resumen.plazo_meses} meses
+                    </dd>
+                  </div>
+                )}
+                {simulacion.resumen?.TEM !== undefined && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-slate-500">
+                      TEM
+                    </dt>
+                    <dd className="font-semibold">
+                      {(simulacion.resumen.TEM * 100).toFixed(2)}%
+                    </dd>
+                  </div>
+                )}
+                {simulacion.resumen?.TIR && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-slate-500">
+                      TIR
+                    </dt>
+                    <dd className="font-semibold">{simulacion.resumen.TIR}</dd>
+                  </div>
+                )}
+                {simulacion.resumen?.TCEA && (
+                  <div>
+                    <dt className="text-xs uppercase tracking-wide text-slate-500">
+                      TCEA
+                    </dt>
+                    <dd className="font-semibold">{simulacion.resumen.TCEA}</dd>
+                  </div>
+                )}
+              </dl>
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );
 }
+
+function IndicatorCard({
+  title,
+  value,
+  helper,
+}: {
+  title: string;
+  value: string;
+  helper?: string;
+}) {
+  return (
+      <article className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+      <p className="text-sm text-slate-500">{title}</p>
+      <p className="mt-2 text-2xl font-semibold text-slate-900">{value}</p>
+      {helper && <p className="mt-1 text-xs text-slate-500">{helper}</p>}
+    </article>
+  );
+}
+
 
 function ClientesScreen({ searchTerm }: { searchTerm: string }) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
