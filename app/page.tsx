@@ -2,6 +2,7 @@
 
 import {
   FormEvent,
+  FocusEvent,
   ReactNode,
   useEffect,
   useMemo,
@@ -153,7 +154,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-      <div className="flex min-h-screen gap-4 p-4 sm:p-6">
+      <div className="mx-auto flex min-h-screen max-w-7xl gap-4 p-4 sm:p-6">
         <Sidebar activeSection={activeSection} onSelect={setActiveSection} />
 
         <main className="flex-1 space-y-6">
@@ -188,10 +189,7 @@ export default function Home() {
             <InmueblesScreen searchTerm={globalSearch} />
           )}
           {activeSection === "inicio" && (
-            <SectionPlaceholder
-              title="Resumen general"
-              description="Selecciona una sección para comenzar a trabajar con tus clientes o propiedades."
-            />
+            <InicioScreen searchTerm={globalSearch} />
           )}
           {activeSection === "simulador" && <SimuladorScreen />}
         </main>
@@ -395,6 +393,372 @@ function SectionPlaceholder({
   );
 }
 
+function InicioScreen({ searchTerm }: { searchTerm: string }) {
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [inmuebles, setInmuebles] = useState<Inmueble[]>([]);
+  const [filtros, setFiltros] = useState({
+    cliente: "todos",
+    propiedad: "todas",
+    estado: "todas",
+    tipo: "todos",
+  });
+  const [textoBusqueda, setTextoBusqueda] = useState("");
+
+  useEffect(() => {
+    fetch("/api/clientes")
+      .then((r) => r.json())
+      .then((data) => setClientes(Array.isArray(data) ? data : []))
+      .catch(() => setClientes([]));
+
+    fetch("/api/inmuebles")
+      .then((r) => r.json())
+      .then((data) => setInmuebles(Array.isArray(data) ? data : []))
+      .catch(() => setInmuebles([]));
+  }, []);
+
+  const simulacionesRecientes = useMemo(
+    () => [
+      {
+        id: 3021,
+        cliente: "María Rojas",
+        propiedad: "Eco Towers Miraflores",
+        monto: 286400,
+        plazo: 180,
+        estado: "En evaluación",
+        tipo: "Hipotecario",
+        fecha: "2024-08-05",
+        moneda: "Soles",
+      },
+      {
+        id: 3012,
+        cliente: "Carlos Quispe",
+        propiedad: "Residencial Andina",
+        monto: 198000,
+        plazo: 240,
+        estado: "Aprobada",
+        tipo: "MiVivienda",
+        fecha: "2024-07-22",
+        moneda: "Soles",
+      },
+      {
+        id: 2988,
+        cliente: "Lucía Fernández",
+        propiedad: "Condominio Pacífico",
+        monto: 120000,
+        plazo: 120,
+        estado: "Observada",
+        tipo: "Reprogramación",
+        fecha: "2024-07-15",
+        moneda: "Dólares",
+      },
+    ],
+    []
+  );
+
+  const simulacionesFiltradas = useMemo(() => {
+    const texto = `${searchTerm} ${textoBusqueda}`.toLowerCase();
+
+    return simulacionesRecientes.filter((sim) => {
+      const coincideTexto =
+        texto.trim().length === 0 ||
+        `${sim.cliente} ${sim.propiedad} ${sim.estado}`
+          .toLowerCase()
+          .includes(texto);
+
+      const coincideCliente =
+        filtros.cliente === "todos" || sim.cliente === filtros.cliente;
+      const coincidePropiedad =
+        filtros.propiedad === "todas" || sim.propiedad === filtros.propiedad;
+      const coincideEstado =
+        filtros.estado === "todas" || sim.estado === filtros.estado;
+      const coincideTipo = filtros.tipo === "todos" || sim.tipo === filtros.tipo;
+
+      return (
+        coincideTexto &&
+        coincideCliente &&
+        coincidePropiedad &&
+        coincideEstado &&
+        coincideTipo
+      );
+    });
+  }, [filtros, simulacionesRecientes, searchTerm, textoBusqueda]);
+
+  const indicadores = [
+    { titulo: "Total de clientes activos", valor: clientes.length },
+    { titulo: "Propiedades disponibles", valor: inmuebles.length },
+    { titulo: "Simulaciones recientes", valor: simulacionesRecientes.length },
+    { titulo: "Tendencia", valor: "En crecimiento" },
+  ];
+
+  return (
+    <section className="space-y-6">
+      <div className="rounded-[32px] bg-gradient-to-r from-brand-600 via-brand-500 to-amber-400 p-6 text-white shadow-xl">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+          <div>
+            <p className="text-sm uppercase tracking-widest text-white/70">
+              Panel de simulaciones recientes
+            </p>
+            <h2 className="text-2xl font-semibold leading-tight">
+              Sigue el estado de tus clientes y propiedades en un solo lugar
+            </h2>
+            <p className="mt-2 text-sm text-white/80">
+              Busca, filtra y prioriza las simulaciones para tomar decisiones más
+              rápido.
+            </p>
+          </div>
+          <div className="grid w-full max-w-md grid-cols-2 gap-3 text-sm md:max-w-lg">
+            {indicadores.map((item) => (
+              <div
+                key={item.titulo}
+                className="rounded-2xl bg-white/10 p-3 backdrop-blur"
+              >
+                <p className="text-xs uppercase tracking-widest text-white/80">
+                  {item.titulo}
+                </p>
+                <p className="mt-1 text-lg font-semibold">{item.valor}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-[2fr_1.1fr]">
+        <article className="rounded-[32px] bg-white p-6 shadow-xl">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-xl font-semibold text-slate-900">
+                Buscador y filtros inteligentes
+              </h3>
+              <p className="text-sm text-slate-500">
+                Por cliente, propiedad, estado de simulación, fecha o tipo de
+                crédito.
+              </p>
+            </div>
+            <input
+              className="w-full rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-700 focus:border-brand-400 focus:outline-none focus:ring-0 sm:w-60"
+              value={textoBusqueda}
+              onChange={(e) => setTextoBusqueda(e.target.value)}
+              placeholder="Buscar en simulaciones"
+            />
+          </div>
+
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <label className="text-sm font-semibold text-slate-600">
+              <span className="mb-1 block text-xs uppercase tracking-widest text-slate-400">
+                Cliente
+              </span>
+              <select
+                value={filtros.cliente}
+                onChange={(e) =>
+                  setFiltros((prev) => ({ ...prev, cliente: e.target.value }))
+                }
+                className={inputBaseClasses}
+              >
+                <option value="todos">Todos</option>
+                {clientes.map((cliente) => (
+                  <option
+                    key={cliente.id}
+                    value={`${cliente.nombres} ${cliente.apellidos}`}
+                  >
+                    {cliente.nombres} {cliente.apellidos}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm font-semibold text-slate-600">
+              <span className="mb-1 block text-xs uppercase tracking-widest text-slate-400">
+                Propiedad
+              </span>
+              <select
+                value={filtros.propiedad}
+                onChange={(e) =>
+                  setFiltros((prev) => ({ ...prev, propiedad: e.target.value }))
+                }
+                className={inputBaseClasses}
+              >
+                <option value="todas">Todas</option>
+                {inmuebles.map((inmueble) => (
+                  <option key={inmueble.id} value={inmueble.nombre_proyecto}>
+                    {inmueble.nombre_proyecto}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="text-sm font-semibold text-slate-600">
+              <span className="mb-1 block text-xs uppercase tracking-widest text-slate-400">
+                Estado de simulación
+              </span>
+              <select
+                value={filtros.estado}
+                onChange={(e) =>
+                  setFiltros((prev) => ({ ...prev, estado: e.target.value }))
+                }
+                className={inputBaseClasses}
+              >
+                <option value="todas">Todos</option>
+                <option value="Aprobada">Aprobadas</option>
+                <option value="En evaluación">En evaluación</option>
+                <option value="Observada">Observadas</option>
+              </select>
+            </label>
+
+            <label className="text-sm font-semibold text-slate-600">
+              <span className="mb-1 block text-xs uppercase tracking-widest text-slate-400">
+                Tipo de crédito
+              </span>
+              <select
+                value={filtros.tipo}
+                onChange={(e) =>
+                  setFiltros((prev) => ({ ...prev, tipo: e.target.value }))
+                }
+                className={inputBaseClasses}
+              >
+                <option value="todos">Todos</option>
+                <option value="MiVivienda">MiVivienda</option>
+                <option value="Hipotecario">Hipotecario</option>
+                <option value="Reprogramación">Reprogramación</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            {simulacionesFiltradas.map((sim) => (
+              <div
+                key={sim.id}
+                className="flex flex-col justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs uppercase tracking-widest text-slate-400">
+                      Cliente asociado
+                    </p>
+                    <p className="text-base font-semibold text-slate-900">
+                      {sim.cliente}
+                    </p>
+                    <p className="text-sm text-slate-500">{sim.propiedad}</p>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                      sim.estado === "Aprobada"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : sim.estado === "En evaluación"
+                        ? "bg-amber-100 text-amber-700"
+                        : "bg-rose-100 text-rose-700"
+                    }`}
+                  >
+                    {sim.estado}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                  <span className="rounded-xl bg-white px-3 py-1 font-semibold text-slate-800">
+                    {currencyFormatter.format(sim.monto)}
+                  </span>
+                  <span className="rounded-xl bg-white px-3 py-1">{sim.plazo} meses</span>
+                  <span className="rounded-xl bg-white px-3 py-1">{sim.moneda}</span>
+                  <span className="rounded-xl bg-white px-3 py-1">{sim.tipo}</span>
+                  <span className="text-xs text-slate-500">{sim.fecha}</span>
+                </div>
+              </div>
+            ))}
+
+            {simulacionesFiltradas.length === 0 && (
+              <p className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">
+                No hay simulaciones que coincidan con los filtros.
+              </p>
+            )}
+          </div>
+        </article>
+
+        <article className="rounded-[32px] bg-white p-6 shadow-xl">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-widest text-brand-600">
+                Indicadores principales
+              </p>
+              <h3 className="text-xl font-semibold text-slate-900">
+                Salud del portafolio
+              </h3>
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-widest text-slate-400">
+                Total de clientes activos
+              </p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">
+                {clientes.length}
+              </p>
+              <p className="text-sm text-slate-500">Con datos listos para simular</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-widest text-slate-400">
+                Propiedades disponibles
+              </p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">
+                {inmuebles.length}
+              </p>
+              <p className="text-sm text-slate-500">Listas para asignar a clientes</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-widest text-slate-400">
+                Simulaciones realizadas
+              </p>
+              <p className="mt-2 text-3xl font-semibold text-slate-900">
+                {simulacionesRecientes.length}
+              </p>
+              <p className="text-sm text-slate-500">Últimos 30 días</p>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+              <p className="text-xs uppercase tracking-widest text-slate-400">
+                Por estado de simulación
+              </p>
+              <div className="mt-2 space-y-1 text-sm text-slate-600">
+                <div className="flex items-center justify-between">
+                  <span>Aprobadas</span>
+                  <span className="font-semibold text-emerald-700">
+                    {
+                      simulacionesRecientes.filter(
+                        (sim) => sim.estado === "Aprobada"
+                      ).length
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>En evaluación</span>
+                  <span className="font-semibold text-amber-700">
+                    {
+                      simulacionesRecientes.filter(
+                        (sim) => sim.estado === "En evaluación"
+                      ).length
+                    }
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Observadas</span>
+                  <span className="font-semibold text-rose-700">
+                    {
+                      simulacionesRecientes.filter(
+                        (sim) => sim.estado === "Observada"
+                      ).length
+                    }
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 function ClientesScreen({ searchTerm }: { searchTerm: string }) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [detalle, setDetalle] = useState<Cliente | null>(null);
@@ -451,6 +815,17 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
       return haystack.includes(global) && haystack.includes(local);
     });
   }, [clientes, searchTerm, localSearch]);
+
+  function calcularEdad(fechaNacimiento: string) {
+    const fecha = new Date(fechaNacimiento);
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - fecha.getFullYear();
+    const mes = hoy.getMonth() - fecha.getMonth();
+    if (mes < 0 || (mes === 0 && hoy.getDate() < fecha.getDate())) {
+      edad--;
+    }
+    return edad;
+  }
 
   function resetFormulario() {
     setFormValues(initialClienteForm);
@@ -728,6 +1103,14 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
                   <dt className="font-semibold">Ingreso mensual</dt>
                   <dd>{currencyFormatter.format(detalle.ingreso_mensual)}</dd>
                 </div>
+                <div>
+                  <dt className="font-semibold">¿Tiene discapacidad?</dt>
+                  <dd>{detalle.flag_condiciones ? "Sí" : "No"}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Edad</dt>
+                  <dd>{calcularEdad(detalle.fecha_nacimiento)} años</dd>
+                </div>
               </dl>
             </div>
           )}
@@ -756,7 +1139,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
             </div>
           )}
           <form className="space-y-4" onSubmit={manejarSubmit}>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Nombres">
                 <input
                   className={inputBaseClasses}
@@ -846,17 +1229,19 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
                   required
                 />
               </Field>
-              <Field label="Dirección">
-                <input
-                  className={inputBaseClasses}
-                  type="text"
-                  value={formValues.direccion}
-                  onChange={(e) =>
-                    setFormValues({ ...formValues, direccion: e.target.value })
-                  }
-                  required
-                />
-              </Field>
+              <div className="lg:col-span-2">
+                <Field label="Dirección">
+                  <input
+                    className={inputBaseClasses}
+                    type="text"
+                    value={formValues.direccion}
+                    onChange={(e) =>
+                      setFormValues({ ...formValues, direccion: e.target.value })
+                    }
+                    required
+                  />
+                </Field>
+              </div>
               <Field label="Ingreso mensual (S/)">
                 <input
                   className={inputBaseClasses}
@@ -872,39 +1257,37 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
                   required
                 />
               </Field>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="¿Tiene discapacidad, es aplazado o inmigrante?">
-                  <select
-                    className={inputBaseClasses}
-                    value={formValues.duenio_propiedad}
-                    onChange={(e) =>
-                      setFormValues({
-                        ...formValues,
-                        duenio_propiedad: Number(e.target.value),
-                      })
-                    }
-                  >
-                    <option value={1}>Sí</option>
-                    <option value={0}>No</option>
-                  </select>
-                </Field>
+              <Field label="¿Tiene discapacidad, es aplazado o inmigrante?">
+                <select
+                  className={inputBaseClasses}
+                  value={formValues.duenio_propiedad}
+                  onChange={(e) =>
+                    setFormValues({
+                      ...formValues,
+                      duenio_propiedad: Number(e.target.value),
+                    })
+                  }
+                >
+                  <option value={1}>Sí</option>
+                  <option value={0}>No</option>
+                </select>
+              </Field>
 
-                <Field label="¿Acepta condiciones?">
-                  <select
-                    className={inputBaseClasses}
-                    value={formValues.flag_condiciones ? "1" : "0"}
-                    onChange={(e) =>
-                      setFormValues({
-                        ...formValues,
-                        flag_condiciones: e.target.value === "1",
-                      })
-                    }
-                  >
-                    <option value="0">No</option>
-                    <option value="1">Sí</option>
-                  </select>
-                </Field>
-              </div>
+              <Field label="¿Acepta condiciones?">
+                <select
+                  className={inputBaseClasses}
+                  value={formValues.flag_condiciones ? "1" : "0"}
+                  onChange={(e) =>
+                    setFormValues({
+                      ...formValues,
+                      flag_condiciones: e.target.value === "1",
+                    })
+                  }
+                >
+                  <option value="0">No</option>
+                  <option value="1">Sí</option>
+                </select>
+              </Field>
             </div>
 
             <div className="flex flex-wrap gap-3">
@@ -1141,6 +1524,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
             <table className="min-w-full divide-y divide-slate-100 text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
+                  <th className="px-6 py-3 text-left">Imagen</th>
                   <th className="px-6 py-3 text-left">Dirección</th>
                   <th className="px-6 py-3 text-left">Metraje</th>
                   <th className="px-6 py-3 text-left">Precio</th>
@@ -1152,7 +1536,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
                 {filteredInmuebles.length === 0 && (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       className="px-6 py-6 text-center text-slate-400"
                     >
                       {loading
@@ -1163,6 +1547,20 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
                 )}
                 {filteredInmuebles.map((inmueble) => (
                   <tr key={inmueble.id}>
+                    <td className="px-6 py-4">
+                      {inmueble.imagen_referencial ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={inmueble.imagen_referencial}
+                          alt={`Foto de ${inmueble.nombre_proyecto}`}
+                          className="h-16 w-24 rounded-2xl object-cover shadow-sm"
+                        />
+                      ) : (
+                        <div className="flex h-16 w-24 items-center justify-center rounded-2xl bg-slate-100 text-xs text-slate-400">
+                          Sin imagen
+                        </div>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-900">
                         {inmueble.ubicacion}
@@ -1460,7 +1858,7 @@ const initialSimulacionForm: SimulacionForm = {
   valorInmueble: 0,
   tipoMoneda: "Soles",
   clasificacionBbp: 0,
-  labelBbp: "Sin bono",
+  labelBbp: "Sin Bono",
   montoBono: 0,
   cuotaInicial: 10,
   plazoMeses: 120,
@@ -1470,7 +1868,7 @@ const initialSimulacionForm: SimulacionForm = {
   plazoTasaInteres: 7,
   periodoGracia: 0,
   plazoPeriodoGracia: 1,
-  capitalizacion: 0,
+  capitalizacion: 7,
   tasaInteres: 0,
   temSeguroDesgravamen: 0,
   tasaSeguroInmueble: 0,
@@ -1490,6 +1888,9 @@ function SimuladorScreen() {
     type: "error" | "success";
     message: string;
   } | null>(null);
+  const [simulacionId, setSimulacionId] = useState<number | null>(null);
+  const [clienteDropdownOpen, setClienteDropdownOpen] = useState(false);
+  const [inmuebleDropdownOpen, setInmuebleDropdownOpen] = useState(false);
 
   useEffect(() => {
     obtenerClientes();
@@ -1607,7 +2008,7 @@ function SimuladorScreen() {
       labelBbp: etiqueta
     }));
 
-  }, [form.clienteId, form.inmuebleId]);
+  }, [clientes, form.clienteId, form.inmuebleId, inmuebles]);
 
   async function obtenerClientes() {
     try {
@@ -1658,6 +2059,24 @@ function SimuladorScreen() {
       ...prev,
       [key]: sanitized,
     }));
+  }
+
+  function cerrarDropdownConRetardo(
+    setter: (open: boolean) => void,
+    delay = 120
+  ) {
+    setTimeout(() => setter(false), delay);
+  }
+
+  function handleNumericFocus(event: FocusEvent<HTMLInputElement>) {
+    event.target.select();
+  }
+
+  function limpiarSimulacion() {
+    setForm(initialSimulacionForm);
+    setSimulacionId(null);
+    setResultado(null);
+    setFeedback(null);
   }
 
   function seleccionarCliente(cliente: Cliente) {
@@ -1735,8 +2154,13 @@ function SimuladorScreen() {
         inmueble_id: form.inmuebleId,
       };
 
-      const res = await fetch("/api/simulaciones", {
-        method: "POST",
+      const url = `/api/simulaciones${
+        simulacionId ? `?id_simulacion=${simulacionId}` : ""
+      }`;
+      const method = simulacionId ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
@@ -1749,11 +2173,18 @@ function SimuladorScreen() {
         throw new Error(mensaje || "No se pudo registrar la simulación");
       }
 
-      const simulacionId = data.simulacion?.id_simulacion;
-      if (!simulacionId)
-        throw new Error("No se obtuvo el identificador de la simulación");
+      const simulacionIdRespuesta =
+        data.simulacion?.id_simulacion ?? simulacionId;
 
-      const calculo = await fetch(`/api/simulaciones?id=${simulacionId}`);
+      if (!simulacionIdRespuesta) {
+        throw new Error("No se obtuvo el identificador de la simulación");
+      }
+
+      setSimulacionId(simulacionIdRespuesta);
+
+      const calculo = await fetch(
+        `/api/simulaciones?id_simulacion=${simulacionIdRespuesta}`
+      );
       const resultadoCalculo = await calculo.json();
       if (!calculo.ok)
         throw new Error(
@@ -1764,7 +2195,9 @@ function SimuladorScreen() {
       generarFechasCronograma(resultadoCalculo.data.length);
       setFeedback({
         type: "success",
-        message: "Simulación registrada y calculada correctamente.",
+        message: simulacionId
+          ? "Simulación actualizada y calculada correctamente."
+          : "Simulación registrada y calculada correctamente.",
       });
     } catch (error) {
       setFeedback({ type: "error", message: (error as Error).message });
@@ -2237,13 +2670,13 @@ function SimuladorScreen() {
               <div className="relative">
                 <input
                   value={form.clienteBusqueda}
+                  onFocus={() => setClienteDropdownOpen(true)}
+                  onBlur={() => cerrarDropdownConRetardo(setClienteDropdownOpen)}
                   onChange={(e) => {
                     const value = e.target.value;
 
-                    // Actualiza el texto del input
                     actualizarForm("clienteBusqueda", value);
 
-                    // Si el campo está vacío → resetear selección
                     if (value.trim() === "") {
                       setForm((prev) => ({
                         ...prev,
@@ -2254,18 +2687,28 @@ function SimuladorScreen() {
                     }
                   }}
                   placeholder="Buscar por DNI o nombre"
-                  className={`${inputBaseClasses} pr-10`}
+                  className={`${inputBaseClasses} pr-12`}
                 />
-                <div className="absolute right-3 top-2 text-slate-400">⌄</div>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setClienteDropdownOpen((prev) => !prev)}
+                  className="absolute right-2 top-2 rounded-xl px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
+                >
+                  ⌄
+                </button>
 
-                {/* Dropdown */}
-                {form.clienteBusqueda && !form.clienteId && (
+                {clienteDropdownOpen && (
                   <div className="absolute z-10 mt-2 max-h-48 w-full overflow-auto rounded-2xl border border-slate-100 bg-white shadow-lg">
                     {clientesFiltrados.map((cliente) => (
                       <button
                         key={cliente.id}
                         type="button"
-                        onClick={() => seleccionarCliente(cliente)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          seleccionarCliente(cliente);
+                          setClienteDropdownOpen(false);
+                        }}
                         className="flex w-full flex-col items-start px-4 py-2 text-left text-sm hover:bg-slate-50"
                       >
                         <span className="font-semibold text-slate-800">
@@ -2287,15 +2730,6 @@ function SimuladorScreen() {
               </div>
             </Field>
 
-            <Field label="Correo">
-              <input
-                value={form.clienteCorreo}
-                readOnly
-                placeholder="Correo del cliente"
-                className={`${inputBaseClasses} bg-slate-100`}
-              />
-            </Field>
-
             <Field label="DNI">
               <input
                 value={form.clienteDni}
@@ -2305,10 +2739,21 @@ function SimuladorScreen() {
               />
             </Field>
 
+            <Field label="Correo">
+              <input
+                value={form.clienteCorreo}
+                readOnly
+                placeholder="Correo del cliente"
+                className={`${inputBaseClasses} bg-slate-100`}
+              />
+            </Field>
+
             <Field label="Propiedad">
               <div className="relative">
                 <input
                   value={form.inmuebleBusqueda}
+                  onFocus={() => setInmuebleDropdownOpen(true)}
+                  onBlur={() => cerrarDropdownConRetardo(setInmuebleDropdownOpen)}
                   onChange={(e) => {
                     const value = e.target.value;
 
@@ -2323,18 +2768,28 @@ function SimuladorScreen() {
                     }
                   }}
                   placeholder="Buscar por nombre de proyecto"
-                  className={`${inputBaseClasses} pr-10`}
+                  className={`${inputBaseClasses} pr-12`}
                 />
-                <div className="absolute right-3 top-2 text-slate-400">⌄</div>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => setInmuebleDropdownOpen((prev) => !prev)}
+                  className="absolute right-2 top-2 rounded-xl px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
+                >
+                  ⌄
+                </button>
 
-                {/* Dropdown */}
-                {form.inmuebleBusqueda && !form.inmuebleId && (
+                {inmuebleDropdownOpen && (
                   <div className="absolute z-10 mt-2 max-h-48 w-full overflow-auto rounded-2xl border border-slate-100 bg-white shadow-lg">
                     {inmueblesFiltrados.map((inmueble) => (
                       <button
                         key={inmueble.id}
                         type="button"
-                        onClick={() => seleccionarInmueble(inmueble)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          seleccionarInmueble(inmueble);
+                          setInmuebleDropdownOpen(false);
+                        }}
                         className="flex w-full flex-col items-start px-4 py-2 text-left text-sm hover:bg-slate-50"
                       >
                         <span className="font-semibold text-slate-800">
@@ -2356,6 +2811,14 @@ function SimuladorScreen() {
               </div>
             </Field>
 
+            <Field label="Valor Inmueble">
+              <input
+                value={form.valorInmueble}
+                readOnly
+                className={`${inputBaseClasses} bg-slate-100`}
+              />
+            </Field>
+
             <Field label="Tipo de Moneda">
               <select
                 value={form.tipoMoneda}
@@ -2372,39 +2835,19 @@ function SimuladorScreen() {
               </select>
             </Field>
 
-            <Field label="Valor Inmueble">
-              <input
-                type="number"
-                value={form.valorInmueble}
-                onChange={(e) =>
-                  actualizarForm("valorInmueble", Number(e.target.value))
-                }
-                className={inputBaseClasses}
-                min={0}
-              />
-            </Field>
-
             <Field label="Clasificación Bono Buen Pagador">
               <input
-                type="text"
                 value={form.labelBbp}
-                onChange={(e) =>
-                  actualizarForm("labelBbp", (e.target.value))
-                }
-                className={inputBaseClasses}
-                min={0}
+                readOnly
+                className={`${inputBaseClasses} bg-slate-100`}
               />
             </Field>
 
             <Field label="Monto Bono Buen Pagador">
               <input
-                type="number"
                 value={form.montoBono}
-                onChange={(e) =>
-                  actualizarForm("montoBono", Number(e.target.value))
-                }
-                className={inputBaseClasses}
-                min={0}
+                readOnly
+                className={`${inputBaseClasses} bg-slate-100`}
               />
             </Field>
 
@@ -2418,18 +2861,20 @@ function SimuladorScreen() {
                 className={inputBaseClasses}
                 min={0}
                 max={100}
+                onFocus={handleNumericFocus}
               />
             </Field>
 
-            <Field label="Plazo (meses)">
+            <Field label="Costos iniciales">
               <input
                 type="number"
-                value={form.plazoMeses}
+                value={form.costosIniciales}
                 onChange={(e) =>
-                  actualizarForm("plazoMeses", Number(e.target.value))
+                  actualizarForm("costosIniciales", Number(e.target.value))
                 }
                 className={inputBaseClasses}
-                min={1}
+                min={0}
+                onFocus={handleNumericFocus}
               />
             </Field>
 
@@ -2449,6 +2894,19 @@ function SimuladorScreen() {
                   actualizarForm("fechaDesembolso", e.target.value)
                 }
                 className={inputBaseClasses}
+              />
+            </Field>
+
+            <Field label="Plazo (meses)">
+              <input
+                type="number"
+                value={form.plazoMeses}
+                onChange={(e) =>
+                  actualizarForm("plazoMeses", Number(e.target.value))
+                }
+                className={inputBaseClasses}
+                min={1}
+                onFocus={handleNumericFocus}
               />
             </Field>
 
@@ -2477,6 +2935,42 @@ function SimuladorScreen() {
                 }
                 className={inputBaseClasses}
                 min={0}
+                onFocus={handleNumericFocus}
+              />
+            </Field>
+
+            {form.tipoTasa === "Nominal" && (
+              <Field label="Capitalización (c)">
+                <select
+                  value={form.capitalizacion}
+                  onChange={(e) =>
+                    actualizarForm("capitalizacion", Number(e.target.value))
+                  }
+                  className={inputBaseClasses}
+                >
+                  <option value={7}>Anual</option>
+                  <option value={6}>Semestral</option>
+                  <option value={5}>Cuatrimestral</option>
+                  <option value={4}>Trimestral</option>
+                  <option value={3}>Bimestral</option>
+                  <option value={2}>Mensual</option>
+                  <option value={1}>Quincenal</option>
+                  <option value={0}>Diaria</option>
+                </select>
+              </Field>
+            )}
+
+            <Field label="Tasa de Interés (i)">
+              <input
+                type="number"
+                value={form.tasaInteres}
+                onChange={(e) =>
+                  actualizarForm("tasaInteres", Number(e.target.value))
+                }
+                className={inputBaseClasses}
+                min={0}
+                step="any"
+                onFocus={handleNumericFocus}
               />
             </Field>
 
@@ -2494,42 +2988,20 @@ function SimuladorScreen() {
               </select>
             </Field>
 
-            <Field label="Capitalización (c)">
-              <input
-                type="number"
-                value={form.capitalizacion}
-                onChange={(e) =>
-                  actualizarForm("capitalizacion", Number(e.target.value))
-                }
-                className={inputBaseClasses}
-                min={0}
-              />
-            </Field>
-
-            <Field label="Periodo de gracia (pg)">
-              <input
-                type="number"
-                value={form.plazoPeriodoGracia}
-                onChange={(e) =>
-                  actualizarForm("plazoPeriodoGracia", Number(e.target.value))
-                }
-                className={inputBaseClasses}
-                min={1}
-              />
-            </Field>
-
-            <Field label="Tasa de Interés (i)">
-              <input
-                type="number"
-                value={form.tasaInteres}
-                onChange={(e) =>
-                  actualizarForm("tasaInteres", Number(e.target.value))
-                }
-                className={inputBaseClasses}
-                min={0}
-                step="any"
-              />
-            </Field>
+            {form.periodoGracia !== 0 && (
+              <Field label="Plazo de periodo de gracia (pg)">
+                <input
+                  type="number"
+                  value={form.plazoPeriodoGracia}
+                  onChange={(e) =>
+                    actualizarForm("plazoPeriodoGracia", Number(e.target.value))
+                  }
+                  className={inputBaseClasses}
+                  min={1}
+                  onFocus={handleNumericFocus}
+                />
+              </Field>
+            )}
 
             <Field label="TEM Seguro Desgravamen">
               <input
@@ -2541,6 +3013,7 @@ function SimuladorScreen() {
                 className={inputBaseClasses}
                 min={0}
                 step="any"
+                onFocus={handleNumericFocus}
               />
             </Field>
 
@@ -2554,6 +3027,7 @@ function SimuladorScreen() {
                 className={inputBaseClasses}
                 min={0}
                 step="any"
+                onFocus={handleNumericFocus}
               />
             </Field>
 
@@ -2566,18 +3040,7 @@ function SimuladorScreen() {
                 }
                 className={inputBaseClasses}
                 min={0}
-              />
-            </Field>
-
-            <Field label="Costos iniciales">
-              <input
-                type="number"
-                value={form.costosIniciales}
-                onChange={(e) =>
-                  actualizarForm("costosIniciales", Number(e.target.value))
-                }
-                className={inputBaseClasses}
-                min={0}
+                onFocus={handleNumericFocus}
               />
             </Field>
 
@@ -2593,13 +3056,14 @@ function SimuladorScreen() {
                 }
                 className={inputBaseClasses}
                 min={0}
+                onFocus={handleNumericFocus}
               />
             </Field>
 
             <div className="col-span-full flex flex-wrap gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setForm(initialSimulacionForm)}
+                onClick={limpiarSimulacion}
                 className="rounded-2xl border border-slate-200 px-6 py-2 font-semibold text-slate-500"
               >
                 Cancelar
