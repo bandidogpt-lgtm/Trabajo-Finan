@@ -117,7 +117,7 @@ export async function POST(req: Request) {
         portes,
         tem_seguro_desgravamen,
         tasa_seguro_inmueble,
-        costosIniciales: costos_iniciales, // 🆕 insert correcto (camelCase)
+        costosIniciales: costos_iniciales,
         gastosAdministrativos: gasto_admin,
         usuario_id,
         clientes_id,

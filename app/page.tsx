@@ -12,6 +12,7 @@ import { Cliente } from "@/types/cliente";
 import { Inmueble } from "@/types/inmueble";
 import { useSession, signOut } from "next-auth/react";
 import * as XLSX from "xlsx-js-style";
+import ModalSimple from "@/app/components/ModalSimple";
 
 type Section = "inicio" | "clientes" | "propiedades" | "simulador";
 type FormMode = "create" | "edit";
@@ -403,6 +404,10 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
   const [localSearch, setLocalSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [simpleModalOpen, setSimpleModalOpen] = useState(false);
+  const [simpleModalTitle, setSimpleModalTitle] = useState("");
+  const [simpleModalDesc, setSimpleModalDesc] = useState("");
+
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
     message: string;
@@ -498,6 +503,21 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
       });
       resetFormulario();
       await cargarClientes();
+      
+      setSimpleModalTitle(
+        formMode === "create"
+          ? "Cliente registrado con éxito"
+          : "Cliente actualizado"
+      );
+
+      setSimpleModalDesc(
+        formMode === "create"
+          ? "El nuevo cliente ha sido agregado correctamente a la base de datos."
+          : "Los cambios realizados fueron guardados exitosamente."
+      );
+
+      setSimpleModalOpen(true);
+
     } catch (error) {
       setFeedback({ type: "error", message: (error as Error).message });
     } finally {
@@ -567,12 +587,25 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
                 Gestiona la información clave de cada cliente.
               </p>
             </div>
-            <button
-              onClick={cargarClientes}
-              className="rounded-2xl bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500"
-            >
-              {loading ? "Actualizando…" : "Actualizar"}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setSimpleModalTitle("Nuevo mensaje");
+                  setSimpleModalDesc("Este es un modal abierto desde el botón.");
+                  setSimpleModalOpen(true);
+                }}
+                className="rounded-2xl bg-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300"
+              >
+                Abrir Modal
+              </button>
+
+              <button
+                onClick={cargarClientes}
+                className="rounded-2xl bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500"
+              >
+                {loading ? "Actualizando…" : "Actualizar"}
+              </button>
+            </div>
           </div>
 
           <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center">
@@ -699,7 +732,6 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
             </div>
           )}
         </article>
-
         <article className="rounded-[32px] bg-white p-6 shadow-xl">
           <div className="mb-4">
             <p className="text-sm uppercase tracking-widest text-brand-600">
@@ -897,6 +929,12 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
             </div>
           </form>
         </article>
+        <ModalSimple
+          open={simpleModalOpen}
+          title={simpleModalTitle}
+          description={simpleModalDesc}
+          onClose={() => setSimpleModalOpen(false)}
+        />
       </div>
     </section>
   );
