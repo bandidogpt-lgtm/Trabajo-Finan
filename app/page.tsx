@@ -2831,16 +2831,22 @@ function SimuladorScreen() {
             </Field>
 
             <Field label="Plazo de tasa de interés (p)">
-              <input
-                type="number"
+              <select
                 value={form.plazoTasaInteres}
                 onChange={(e) =>
                   actualizarForm("plazoTasaInteres", Number(e.target.value))
                 }
                 className={inputBaseClasses}
-                min={0}
-                onFocus={handleNumericFocus}
-              />
+              >
+                <option value={7}>Anual</option>
+                <option value={6}>Semestral</option>
+                <option value={5}>Cuatrimestral</option>
+                <option value={4}>Trimestral</option>
+                <option value={3}>Bimestral</option>
+                <option value={2}>Mensual</option>
+                <option value={1}>Quincenal</option>
+                <option value={0}>Diaria</option>
+              </select>                
             </Field>
 
             {form.tipoTasa === "Nominal" && (
