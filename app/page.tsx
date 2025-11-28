@@ -706,7 +706,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
                       <div className="flex flex-wrap gap-2 text-xs font-semibold">
                         <button
                           onClick={() => verCliente(cliente.id)}
-                          className="rounded-full bg-emerald-100 px-4 py-1 text-emerald-700"
+                          className="rounded-full bg-brand-600 px-4 py-1 text-white hover:bg-brand-500"
                         >
                           Ver más
                         </button>
@@ -1541,11 +1541,14 @@ function SimuladorScreen() {
     obtenerInmuebles();
   }, []);
 
-  useEffect(() => {
-    if (viewMode === "list") {
-      cargarSimulaciones(simulacionSearch);
-    }
-  }, [viewMode, simulacionSearch]);
+useEffect(() => {
+  if (viewMode !== "list") return;
+
+  if (simulacionSearch.length >= 2 || simulacionSearch.length === 0) {
+    cargarSimulaciones(simulacionSearch);
+  }
+}, [viewMode, simulacionSearch]);
+
 
   useEffect(() => {
     const cuotaInicialMonto = (form.valorInmueble * form.cuotaInicial) / 100;
@@ -2268,10 +2271,12 @@ function SimuladorScreen() {
                       key={sim.id}
                       type="button"
                       className="flex w-full flex-col items-start px-4 py-2 text-left text-sm hover:bg-slate-50"
-                      onClick={() => {
-                        setSimulacionSearch(`${sim.clienteNombre} ${sim.clienteDni}`);
-                        cargarSimulaciones(`${sim.clienteNombre} ${sim.clienteDni}`);
-                      }}
+onClick={() => {
+  const value = sim.clienteNombre;   // ← SOLO NOMBRE
+  setSimulacionSearch(value);
+  setViewMode("list");               // ← Para mostrar la tabla
+}}
+
                     >
                       <span className="font-semibold text-slate-800">{sim.clienteNombre}</span>
                       <span className="text-xs text-slate-500">{sim.clienteDni} · {sim.propiedad}</span>
@@ -2283,13 +2288,14 @@ function SimuladorScreen() {
                 </div>
               )}
             </div>
+            {/*
             <button
-              className="rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500"
+className="rounded-2xl bg-[#0f1c2f] px-4 py-2 text-sm font-semibold text-white shadow hover:bg-[#112544]"
               onClick={() => cargarSimulaciones(simulacionSearch)}
               disabled={simulacionesLoading}
             >
               {simulacionesLoading ? "Buscando…" : "Visualizar simulaciones"}
-            </button>
+            </button>*/}
           </div>
 
           {simulacionesError && (
@@ -2331,7 +2337,7 @@ function SimuladorScreen() {
                       <button
                         type="button"
                         onClick={() => verSimulacion(sim.id)}
-                        className="rounded-2xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-brand-500"
+  className="rounded-full bg-[#0f1c2f] px-4 py-1 text-white hover:bg-[#112544]"
                         disabled={loading}
                       >
                         Ver más
