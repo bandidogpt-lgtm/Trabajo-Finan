@@ -178,7 +178,7 @@ console.log("✔ Simulación cargada:", simulacion.id_simulacion)
 
     // === Conversión de valores ===
     const tipoTasa = simulacion.tipo_tasa === 'Efectiva' ? 0 : 1
-    const i = Number(simulacion.tasa_interes)
+    const i = Number(simulacion.tasa_interes) / 100
     const p = simulacion.plazo_tasa_interes
     const c = Number(simulacion.capitalizacion)
     const PV = Number(simulacion.monto_prestamo)
@@ -250,7 +250,7 @@ function calcularTEM(
     const Flujos = []
     const cuotas = []
 
-    // === Bucle del cronograma mensual ===
+// === Bucle del cronograma mensual ===
     for (let k = 1; k <= n; k++) {
       let Interes = Saldo * r
       let SegDes = Number((-Saldo * TSD).toFixed(2))          // seguro desgravamen
@@ -286,18 +286,18 @@ function calcularTEM(
 
         cuotas.push(Number(Cuota.toFixed(2)))
         Flujos.push([
-          k, Number(CuotaBase.toFixed(2)),
-          Number(Cuota.toFixed(2)),
-          Number(Interes.toFixed(2)),
-          Amort,
+          //k, Number(CuotaBase.toFixed(2)),
+         // Number(Cuota.toFixed(2)),
+          Number(-Interes.toFixed(2)),
+          Number(-Amort.toFixed(2)),
           Number(SegDes.toFixed(2)),
           Number(SegInm.toFixed(2)),
           Number(PorteVal.toFixed(2)),
-          
+
           Number(GastoAdmin.toFixed(2)),
+          Number((-Cuota).toFixed(2)),
 
           Number(Saldo.toFixed(2)),
-          Number((-Cuota).toFixed(2))
         ])
 
         continue
@@ -323,21 +323,22 @@ function calcularTEM(
 
       cuotas.push(Number(Cuota.toFixed(2)))
       Flujos.push([
-        k,
-        Number(CuotaBase.toFixed(2)),
-        Number(Cuota.toFixed(2)),
-        Number(Interes.toFixed(2)),
-        Number(Amort.toFixed(2)),
+        //k,
+       // Number(CuotaBase.toFixed(2)),
+        //Number(Cuota.toFixed(2)),
+        Number(-Interes.toFixed(2)),
+        Number(-Amort.toFixed(2)),
         Number(SegDes.toFixed(2)),
         Number(SegInm.toFixed(2)),
         Number(PorteVal.toFixed(2)),
 
         Number(GastoAdmin.toFixed(2)),
+        Number((-Cuota).toFixed(2)),
 
         Number(Saldo.toFixed(2)),
-        Number((-Cuota).toFixed(2))
       ])
-    }
+    }  
+
 
       // === 5. Calcular VAN y TIR
       let sumaCuotas = 0
@@ -394,7 +395,7 @@ if (g === 0) {
         TIR: Number((tasaAprox * 100).toFixed(2)) + "%",
         TCEA: Number((TCEA * 100).toFixed(2)) + "%"
       },
-      headers: ["Iter","CuotaBase","Cuota","Interes","Amort","SegDes","SegInm","Porte","GastosAdmin","Saldo","Flujo"],
+      headers: [/*"CuotaBase","Cuota",*/"Interes","Amort","Seg. Des.","Seg. Inm.","Porte","Gastos Admin","Flujo","Saldo Final"],
       data: Flujos
     })
 

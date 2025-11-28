@@ -1500,8 +1500,7 @@ function SimuladorScreen() {
     const cuotaInicialMonto = (form.valorInmueble * form.cuotaInicial) / 100;
     const monto =
       Math.max(form.valorInmueble - cuotaInicialMonto - form.montoBono, 0) +
-      form.costosIniciales +
-      form.gastosAdministrativos;
+      form.costosIniciales
     setForm((prev) => ({
       ...prev,
       montoPrestamoCalculado: Number(monto.toFixed(2)),
@@ -1715,7 +1714,7 @@ function SimuladorScreen() {
       const payload = {
         tipo_moneda: form.tipoMoneda === "Soles" ? 0 : 1,
         tipo_tasa: form.tipoTasa === "Efectiva" ? 0 : 1,
-        tasa_interes: Number(form.tasaInteres) / 100,
+        tasa_interes: Number(form.tasaInteres),
         capitalizacion: Number(form.capitalizacion),
         monto_prestamo: Number(form.valorInmueble),
         cuota_inicial: Number(form.cuotaInicial),
@@ -1726,8 +1725,8 @@ function SimuladorScreen() {
         plazo_periodo_gracia: Number(form.plazoPeriodoGracia),
         monto_bono_bbp: Number(form.montoBono),
         clasificacion_bono_bbp: Number(form.clasificacionBbp),
-        tem_seguro_desgravamen: Number(form.temSeguroDesgravamen) / 100,
-        tasa_seguro_inmueble: Number(form.tasaSeguroInmueble) / 100,
+        tem_seguro_desgravamen: Number(form.temSeguroDesgravamen),
+        tasa_seguro_inmueble: Number(form.tasaSeguroInmueble),
         portes: Number(form.portes),
         costos_iniciales: Number(form.costosIniciales),
         gasto_admin: Number(form.gastosAdministrativos),
@@ -2134,9 +2133,9 @@ function SimuladorScreen() {
             title="Plazo (meses)"
             value={`${resultado.resumen.plazo_meses}`}
           />
-          <ResumenCard
-            title="Costo inicial"
-            value={currencyFormatter.format(resultado.resumen.costos_iniciales)}
+          <ResumenCard 
+            title="TEM" 
+            value={` ${(resultado.resumen.TEM*100).toFixed(5)}%`} 
           />
           <ResumenCard
             title="Monto préstamo"
