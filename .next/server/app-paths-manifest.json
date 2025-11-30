@@ -1,9 +1,5 @@
 {
-<<<<<<< HEAD
-  "/api/clientes/route": "app/api/clientes/route.js",
-  "/page": "app/page.js"
-=======
   "/page": "app/page.js",
-  "/api/simulaciones/route": "app/api/simulaciones/route.js"
->>>>>>> adbb8a20c9e49b9b42e4482a8078b15cb368d988
+  "/api/inmuebles/route": "app/api/inmuebles/route.js",
+  "/api/clientes/route": "app/api/clientes/route.js"
 }

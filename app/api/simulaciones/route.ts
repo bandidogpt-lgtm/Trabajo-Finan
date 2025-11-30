@@ -33,7 +33,9 @@ export async function POST(req: Request) {
 
     // === Defaults
     const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0) // <-- AJUSTE: Ignorar la hora para la validación
     fecha_inicio = fecha_inicio ? new Date(fecha_inicio) : hoy
+    const inicio = fecha_inicio ? new Date(`${fecha_inicio}T00:00:00`) : hoy
     tipo_moneda = tipo_moneda ?? 0
     tipo_tasa = tipo_tasa ?? 0
     plazo_tasa_interes = plazo_tasa_interes ?? 7
@@ -62,7 +64,7 @@ export async function POST(req: Request) {
       errores.push('La cuota inicial (CI) debe estar entre 7.5% y 100%.')
     if (plazo_meses < 60 || plazo_meses > 300)
       errores.push('El plazo en meses (n) debe estar entre 60 y 300.')
-    if (fecha_inicio < hoy)
+    if (inicio < hoy)
       errores.push('La fecha de desembolso no puede ser anterior a hoy.')
     if (tasa_interes <= 0)
       errores.push('La tasa de interés (i) debe ser mayor que 0.')
@@ -135,6 +137,146 @@ export async function POST(req: Request) {
   }
 }
 
+// ============================================================
+// === 1️⃣🅱️ PUT: Actualizar una simulación existente
+// ============================================================
+export async function PUT(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const idParam = searchParams.get("id_simulacion")
+
+    if (!idParam) {
+      return NextResponse.json(
+        { error: "Debe proporcionar el id_simulacion a actualizar." },
+        { status: 400 }
+      )
+    }
+
+    const body = await req.json()
+    let {
+      tipo_moneda,
+      tipo_tasa,
+      tasa_interes,
+      capitalizacion,
+      monto_prestamo,
+      cuota_inicial,
+      plazo_meses,
+      fecha_inicio,
+      plazo_tasa_interes,
+      periodo_gracia,
+      plazo_periodo_gracia,
+      monto_bono_bbp,
+      clasificacion_bono_bbp,
+      tem_seguro_desgravamen,
+      tasa_seguro_inmueble,
+      portes,
+      costos_iniciales,
+      gasto_admin,
+      usuario_id,
+      clientes_id,
+      inmueble_id
+    } = body
+
+    const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0) // <-- AJUSTE: Ignorar la hora para la validación
+    fecha_inicio = fecha_inicio ? new Date(fecha_inicio) : hoy
+    const inicio = fecha_inicio ? new Date(`${fecha_inicio}T00:00:00`) : hoy
+    tipo_moneda = tipo_moneda ?? 0
+    tipo_tasa = tipo_tasa ?? 0
+    plazo_tasa_interes = plazo_tasa_interes ?? 7
+    capitalizacion = capitalizacion ?? 0
+    periodo_gracia = periodo_gracia ?? 0
+    plazo_periodo_gracia = plazo_periodo_gracia ?? 1
+    clasificacion_bono_bbp = clasificacion_bono_bbp ?? 0
+    monto_bono_bbp = monto_bono_bbp ?? 0
+    tem_seguro_desgravamen = tem_seguro_desgravamen ?? 0
+    tasa_seguro_inmueble = tasa_seguro_inmueble ?? 0
+    portes = portes ?? 0
+    costos_iniciales = costos_iniciales ?? 0
+
+    const errores: string[] = []
+
+    if (tipo_moneda === 0) {
+      if (monto_prestamo < 68800 || monto_prestamo > 362100)
+        errores.push('El valor del inmueble (PV) debe estar entre S/. 68,800 y S/. 362,100.')
+    } else {
+      if (monto_prestamo < 19607.84 || monto_prestamo > 104411.76)
+        errores.push('El valor del inmueble (PV) en dólares debe estar entre $ 19,607.84 y $ 104,411.76.')
+    }
+
+    if (cuota_inicial < 7.5 || cuota_inicial > 100)
+      errores.push('La cuota inicial (CI) debe estar entre 7.5% y 100%.')
+    if (plazo_meses < 60 || plazo_meses > 300)
+      errores.push('El plazo en meses (n) debe estar entre 60 y 300.')
+    if (inicio < hoy)
+      errores.push('La fecha de desembolso no puede ser anterior a hoy.')
+    if (tasa_interes <= 0)
+      errores.push('La tasa de interés (i) debe ser mayor que 0.')
+    if (plazo_tasa_interes < 0 || plazo_tasa_interes > 7)
+      errores.push('El plazo de tasa de interés (p) debe estar entre 0 y 7.')
+    if (capitalizacion < 0 || capitalizacion > 7)
+      errores.push('La capitalización (c) debe estar entre 0 y 7.')
+    if (periodo_gracia < 0 || periodo_gracia > 2)
+      errores.push('El periodo de gracia (g) debe estar entre 0 y 2.')
+    if (plazo_periodo_gracia < 1 || plazo_periodo_gracia > 24)
+      errores.push('El plazo del periodo de gracia (pg) debe estar entre 1 y 24.')
+    if (monto_bono_bbp < 0 || monto_bono_bbp > 33700)
+      errores.push('El monto del bono BBP (mbbp) debe estar entre S/. 7,800 y S/. 33,700.')
+    if (tem_seguro_desgravamen < 0)
+      errores.push('El TEM del seguro desgravamen debe ser >= 0.')
+    if (tasa_seguro_inmueble < 0)
+      errores.push('La tasa del seguro inmueble debe ser >= 0.')
+    if (portes < 0)
+      errores.push('El monto de portes debe ser >= 0.')
+    if (gasto_admin < 0)
+      errores.push('El gasto administrativo debe ser mayor o igual a 0.')
+    if (costos_iniciales < 0 || costos_iniciales > 9999.99)
+      errores.push('Los costos iniciales deben ser mayores o iguales a 0 y menores a 10,000.00.')
+
+    if (!usuario_id || !clientes_id || !inmueble_id)
+      errores.push('Debe incluir usuario_id, clientes_id e inmueble_id válidos.')
+
+    if (errores.length > 0) {
+      return NextResponse.json({ error: errores }, { status: 400 })
+    }
+
+    const simulacionActualizada = await db.simulacion.update({
+      where: { id_simulacion: Number(idParam) },
+      data: {
+        tipo_moneda: tipo_moneda === 0 ? 'Soles' : 'Dólares',
+        tipo_tasa: tipo_tasa === 0 ? 'Efectiva' : 'Nominal',
+        tasa_interes,
+        fecha_inicio,
+        capitalizacion: String(capitalizacion),
+        monto_prestamo,
+        cuota_inicial,
+        plazo_meses,
+        plazo_tasa_interes,
+        periodo_gracia: String(periodo_gracia),
+        plazo_periodo_gracia,
+        monto_bono_bbp,
+        clasificacion_bono_bbp,
+        tem_seguro_desgravamen,
+        tasa_seguro_inmueble,
+        portes,
+        costosIniciales: costos_iniciales,
+        gastosAdministrativos: gasto_admin,
+        usuario_id,
+        clientes_id,
+        inmueble_id,
+      },
+    })
+
+    return NextResponse.json({
+      message: '✅ Simulación actualizada correctamente.',
+      simulacion: simulacionActualizada,
+    })
+  } catch (error) {
+    console.error('❌ Error en PUT /simulaciones:', error)
+    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+  }
+}
+
 
 // ============================================================
 // === 2️⃣ GET: Calcular simulación (Método Francés + Gracia Real BCP)
@@ -145,7 +287,7 @@ export async function POST(req: Request) {
 try {
 // === Leer parámetros desde la URL ===
 const { searchParams } = new URL(req.url)
-const idParam = searchParams.get("id_simulacion")
+const idParam = searchParams.get("id_simulacion") ?? searchParams.get("id")
 
 console.log("🔍 ID recibido:", idParam)
 
@@ -404,4 +546,3 @@ if (g === 0) {
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
-
