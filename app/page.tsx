@@ -1161,7 +1161,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
                   required
                 />
               </Field>
-              <Field label="¿Tiene discapacidad, es aplazado o inmigrante?">
+              <Field label="¿Tiene discapacidad?">
                 <select
                   className={inputBaseClasses}
                   value={formValues.duenio_propiedad}
@@ -1177,7 +1177,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
                 </select>
               </Field>
 
-              <Field label="¿Acepta condiciones?">
+              <Field label="¿Es dueño de propiedad?">
                 <select
                   className={inputBaseClasses}
                   value={formValues.flag_condiciones ? "1" : "0"}
@@ -1773,7 +1773,7 @@ const initialSimulacionForm: SimulacionForm = {
   periodoGracia: 0,
   plazoPeriodoGracia: 1,
   capitalizacion: 7,
-  tasaInteres: 0,
+  tasaInteres: 10,
   temSeguroDesgravamen: 0,
   tasaSeguroInmueble: 0,
   portes: 0,
@@ -2414,6 +2414,12 @@ function SimuladorScreen() {
     XLSX.writeFile(wb, "SimulacionCredito.xlsx", { compression: true });
   }
 
+  const formatNumber = (value: number | string) => {
+  if (value === null || value === undefined || value === "") return "";
+  const num = Number(String(value).replace(/,/g, ""));
+  if (isNaN(num)) return "";
+  return new Intl.NumberFormat("es-PE").format(num); // comas de miles
+};
   const contenidoResultados = resultado ? (
     <section className="space-y-6">
       <div className="rounded-[32px] bg-white p-6 shadow-xl">
@@ -2717,7 +2723,7 @@ function SimuladorScreen() {
 
             <Field label="Valor Inmueble">
               <input
-                value={form.valorInmueble}
+                value={formatNumber(form.valorInmueble)}
                 readOnly
                 className={`${inputBaseClasses} bg-slate-100`}
               />
@@ -2749,7 +2755,7 @@ function SimuladorScreen() {
 
             <Field label="Monto Bono Buen Pagador">
               <input
-                value={form.montoBono}
+                value={formatNumber(form.montoBono)}
                 readOnly
                 className={`${inputBaseClasses} bg-slate-100`}
               />
@@ -2771,11 +2777,13 @@ function SimuladorScreen() {
 
             <Field label="Costos iniciales">
               <input
-                type="number"
-                value={form.costosIniciales}
-                onChange={(e) =>
-                  actualizarForm("costosIniciales", Number(e.target.value))
-                }
+                type="text"
+                value={formatNumber(form.costosIniciales)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/,/g, "");
+                  const num = Number(raw);
+                  actualizarForm("costosIniciales", isNaN(num) ? 0 : num);
+                }}
                 className={inputBaseClasses}
                 min={0}
                 onFocus={handleNumericFocus}
@@ -2784,7 +2792,7 @@ function SimuladorScreen() {
 
             <Field label="Monto Préstamo">
               <input
-                value={form.montoPrestamoCalculado}
+                value={formatNumber(form.montoPrestamoCalculado)}
                 readOnly
                 className={`${inputBaseClasses} bg-slate-100`}
               />
@@ -2870,7 +2878,7 @@ function SimuladorScreen() {
               </Field>
             )}
 
-            <Field label="Tasa de Interés (i)">
+            <Field label="Tasa de Interés (%)">
               <input
                 type="number"
                 value={form.tasaInteres}
@@ -2913,7 +2921,7 @@ function SimuladorScreen() {
               </Field>
             )}
 
-            <Field label="TEM Seguro Desgravamen">
+            <Field label="TEM Seguro Desgravamen (%)">
               <input
                 type="number"
                 value={form.temSeguroDesgravamen}
@@ -2927,7 +2935,7 @@ function SimuladorScreen() {
               />
             </Field>
 
-            <Field label="Tasa Seguro Inmueble">
+            <Field label="Tasa Seguro Inmueble (%)">
               <input
                 type="number"
                 value={form.tasaSeguroInmueble}
@@ -2943,11 +2951,13 @@ function SimuladorScreen() {
 
             <Field label="Portes">
               <input
-                type="number"
-                value={form.portes}
-                onChange={(e) =>
-                  actualizarForm("portes", Number(e.target.value))
-                }
+                type="text"
+                value={formatNumber(form.portes)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/,/g, "");
+                  const num = Number(raw);
+                  actualizarForm("portes", isNaN(num) ? 0 : num);
+                }}
                 className={inputBaseClasses}
                 min={0}
                 onFocus={handleNumericFocus}
@@ -2956,14 +2966,13 @@ function SimuladorScreen() {
 
             <Field label="Gastos administrativos">
               <input
-                type="number"
-                value={form.gastosAdministrativos}
-                onChange={(e) =>
-                  actualizarForm(
-                    "gastosAdministrativos",
-                    Number(e.target.value)
-                  )
-                }
+                type="text"
+                value={formatNumber(form.gastosAdministrativos)}
+                onChange={(e) => {
+                  const raw = e.target.value.replace(/,/g, "");
+                  const num = Number(raw);
+                  actualizarForm("gastosAdministrativos", isNaN(num) ? 0 : num);
+                }}
                 className={inputBaseClasses}
                 min={0}
                 onFocus={handleNumericFocus}

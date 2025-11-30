@@ -33,7 +33,9 @@ export async function POST(req: Request) {
 
     // === Defaults
     const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0) // <-- AJUSTE: Ignorar la hora para la validación
     fecha_inicio = fecha_inicio ? new Date(fecha_inicio) : hoy
+    const inicio = fecha_inicio ? new Date(`${fecha_inicio}T00:00:00`) : hoy
     tipo_moneda = tipo_moneda ?? 0
     tipo_tasa = tipo_tasa ?? 0
     plazo_tasa_interes = plazo_tasa_interes ?? 7
@@ -62,7 +64,7 @@ export async function POST(req: Request) {
       errores.push('La cuota inicial (CI) debe estar entre 7.5% y 100%.')
     if (plazo_meses < 60 || plazo_meses > 300)
       errores.push('El plazo en meses (n) debe estar entre 60 y 300.')
-    if (fecha_inicio < hoy)
+    if (inicio < hoy)
       errores.push('La fecha de desembolso no puede ser anterior a hoy.')
     if (tasa_interes <= 0)
       errores.push('La tasa de interés (i) debe ser mayor que 0.')
@@ -176,7 +178,9 @@ export async function PUT(req: Request) {
     } = body
 
     const hoy = new Date()
+    hoy.setHours(0, 0, 0, 0) // <-- AJUSTE: Ignorar la hora para la validación
     fecha_inicio = fecha_inicio ? new Date(fecha_inicio) : hoy
+    const inicio = fecha_inicio ? new Date(`${fecha_inicio}T00:00:00`) : hoy
     tipo_moneda = tipo_moneda ?? 0
     tipo_tasa = tipo_tasa ?? 0
     plazo_tasa_interes = plazo_tasa_interes ?? 7
@@ -204,7 +208,7 @@ export async function PUT(req: Request) {
       errores.push('La cuota inicial (CI) debe estar entre 7.5% y 100%.')
     if (plazo_meses < 60 || plazo_meses > 300)
       errores.push('El plazo en meses (n) debe estar entre 60 y 300.')
-    if (fecha_inicio < hoy)
+    if (inicio < hoy)
       errores.push('La fecha de desembolso no puede ser anterior a hoy.')
     if (tasa_interes <= 0)
       errores.push('La tasa de interés (i) debe ser mayor que 0.')
@@ -542,4 +546,3 @@ if (g === 0) {
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
   }
 }
-

@@ -1,7 +1,5 @@
 {
-  "/api/inmuebles/route": "app/api/inmuebles/route.js",
   "/page": "app/page.js",
-  "/api/enviar-correo/route": "app/api/enviar-correo/route.js",
-  "/api/simulaciones/route": "app/api/simulaciones/route.js",
-  "/api/clientes/[id]/route": "app/api/clientes/[id]/route.js"
+  "/api/inmuebles/route": "app/api/inmuebles/route.js",
+  "/api/clientes/route": "app/api/clientes/route.js"
 }
