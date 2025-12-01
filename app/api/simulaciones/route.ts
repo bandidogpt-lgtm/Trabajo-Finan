@@ -358,7 +358,7 @@ console.log("✔ Simulación cargada:", simulacion.id_simulacion)
     const n = simulacion.plazo_meses
 
     const COK_TEA = simulacion.cliente.cok?.toNumber() ?? 0
-    const COK_TEM = Math.pow(1 + COK_TEA, 1/12) - 1
+    const COK_TEM = Math.pow(1 + COK_TEA / 100, 1/12) - 1
 
     const TSD = Number(simulacion.tem_seguro_desgravamen) / 100
     const TSI = Number(simulacion.tasa_seguro_inmueble) / 100
