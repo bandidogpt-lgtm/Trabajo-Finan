@@ -67,6 +67,45 @@ type SimulacionResultado = {
   resumen: SimulacionResumen;
   headers: string[];
   data: number[][];
+  simulacionInfo?: SimulacionPersistida;
+};
+
+type SimulacionPersistida = {
+  id_simulacion: number;
+  cliente: Cliente;
+  inmueble: Inmueble;
+  clientes_id?: number;
+  inmueble_id?: number;
+  tipo_moneda: string;
+  tipo_tasa: string;
+  tasa_interes: number;
+  fecha_inicio: string;
+  capitalizacion: string | null;
+  monto_prestamo: number;
+  cuota_inicial: number;
+  plazo_meses: number;
+  plazo_tasa_interes: number;
+  periodo_gracia: string | number | null;
+  plazo_periodo_gracia: number;
+  monto_bono_bbp?: number | null;
+  clasificacion_bono_bbp?: number | null;
+  tem_seguro_desgravamen?: number | null;
+  tasa_seguro_inmueble?: number | null;
+  portes?: number | null;
+  costosIniciales?: number | null;
+  gastosAdministrativos?: number | null;
+};
+
+type SimulacionListado = {
+  id_simulacion: number;
+  cliente: Cliente;
+  inmueble: Inmueble;
+  monto_prestamo: number;
+  tasa_interes: number;
+  fecha_inicio: string;
+  tipo_moneda: string;
+  tipo_tasa: string;
+  cuota_inicial?: number;
 };
 
 type SimulacionForm = {
@@ -1795,6 +1834,21 @@ function SimuladorScreen() {
   const [simulacionId, setSimulacionId] = useState<number | null>(null);
   const [clienteDropdownOpen, setClienteDropdownOpen] = useState(false);
   const [inmuebleDropdownOpen, setInmuebleDropdownOpen] = useState(false);
+  const [vistaSimulador, setVistaSimulador] = useState<
+    "form" | "lista" | "detalle"
+  >("form");
+  const [simulacionesGuardadas, setSimulacionesGuardadas] = useState<
+    SimulacionListado[]
+  >([]);
+  const [busquedaSimulacion, setBusquedaSimulacion] = useState("");
+  const [cargandoLista, setCargandoLista] = useState(false);
+  const [errorListado, setErrorListado] = useState<string | null>(null);
+  const [simulacionSeleccionada, setSimulacionSeleccionada] =
+    useState<SimulacionPersistida | null>(null);
+  const fechaHoy = useMemo(
+    () => new Date().toISOString().split("T")[0],
+    []
+  );
 
   useEffect(() => {
     obtenerClientes();
@@ -1817,6 +1871,12 @@ function SimuladorScreen() {
     form.costosIniciales,
     form.gastosAdministrativos,
   ]);
+
+  useEffect(() => {
+    if (vistaSimulador === "lista") {
+      cargarSimulacionesGuardadas();
+    }
+  }, [vistaSimulador, cargarSimulacionesGuardadas]);
 
   // lógica de bono del buen pagador
   useEffect(() => {
@@ -1981,7 +2041,36 @@ function SimuladorScreen() {
     setSimulacionId(null);
     setResultado(null);
     setFeedback(null);
+    setVistaSimulador("form");
+    setSimulacionSeleccionada(null);
   }
+
+  function irAEdicion() {
+    setResultado(null);
+    setVistaSimulador("form");
+    setFeedback(null);
+  }
+
+  const cargarSimulacionesGuardadas = useCallback(async () => {
+    try {
+      setCargandoLista(true);
+      setErrorListado(null);
+      const res = await fetch("/api/simulaciones?view=list", {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(
+          data.error || "No se pudo obtener las simulaciones registradas"
+        );
+      }
+      setSimulacionesGuardadas(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setErrorListado((error as Error).message);
+    } finally {
+      setCargandoLista(false);
+    }
+  }, []);
 
   function seleccionarCliente(cliente: Cliente) {
     setForm((prev) => ({
@@ -2009,15 +2098,80 @@ function SimuladorScreen() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function generarFechasCronograma(totalCuotas: number) {
+  function prepararFormularioDesdeInfo(info: SimulacionPersistida) {
+    const fecha = new Date(info.fecha_inicio).toISOString().split("T")[0];
+    setForm((prev) => ({
+      ...prev,
+      clienteId: info.clientes_id ?? info.cliente.id,
+      clienteBusqueda: `${info.cliente.nombres} ${info.cliente.apellidos}`,
+      clienteCorreo: info.cliente.email ?? "",
+      clienteDni: info.cliente.dni,
+      inmuebleId: info.inmueble_id ?? info.inmueble.id,
+      inmuebleBusqueda: info.inmueble.nombre_proyecto,
+      valorInmueble: Number(info.monto_prestamo),
+      tipoMoneda: info.tipo_moneda === "Dólares" ? "Dólares" : "Soles",
+      clasificacionBbp: info.clasificacion_bono_bbp ?? 0,
+      labelBbp:
+        info.clasificacion_bono_bbp && info.clasificacion_bono_bbp > 0
+          ? "Con Bono"
+          : "Sin Bono",
+      montoBono: info.monto_bono_bbp ?? 0,
+      cuotaInicial: Number(info.cuota_inicial),
+      plazoMeses: info.plazo_meses,
+      montoPrestamoCalculado: Number(info.monto_prestamo),
+      fechaDesembolso: fecha,
+      tipoTasa: info.tipo_tasa === "Nominal" ? "Nominal" : "Efectiva",
+      plazoTasaInteres: info.plazo_tasa_interes,
+      periodoGracia: Number(info.periodo_gracia ?? 0),
+      plazoPeriodoGracia: info.plazo_periodo_gracia,
+      capitalizacion: Number(info.capitalizacion ?? 0),
+      tasaInteres: Number(info.tasa_interes),
+      temSeguroDesgravamen: Number(info.tem_seguro_desgravamen ?? 0),
+      tasaSeguroInmueble: Number(info.tasa_seguro_inmueble ?? 0),
+      portes: Number(info.portes ?? 0),
+      costosIniciales: Number(info.costosIniciales ?? 0),
+      gastosAdministrativos: Number(info.gastosAdministrativos ?? 0),
+    }));
+    setSimulacionId(info.id_simulacion);
+  }
+
+  function generarFechasCronograma(totalCuotas: number, fechaBase?: string) {
     const fechas: string[] = [];
-    const base = new Date(form.fechaDesembolso);
+    const base = new Date(fechaBase ?? form.fechaDesembolso);
     for (let i = 0; i < totalCuotas; i++) {
       const fecha = new Date(base);
       fecha.setMonth(base.getMonth() + i);
       fechas.push(fecha.toISOString().split("T")[0]);
     }
     setCronogramaFechas(fechas);
+  }
+
+  async function verDetalleSimulacion(id: number) {
+    setLoading(true);
+    setFeedback(null);
+    try {
+      const res = await fetch(
+        `/api/simulaciones?id_simulacion=${id}&includeRaw=1`
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo cargar la simulación seleccionada");
+      }
+      setResultado(data);
+      setVistaSimulador("detalle");
+      const info = data.simulacionInfo as SimulacionPersistida | undefined;
+      if (info) {
+        setSimulacionSeleccionada(info);
+        prepararFormularioDesdeInfo(info);
+        generarFechasCronograma(data.data.length, info.fecha_inicio);
+      } else {
+        generarFechasCronograma(data.data.length);
+      }
+    } catch (error) {
+      setFeedback({ type: "error", message: (error as Error).message });
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function manejarCalculo(event: FormEvent) {
@@ -2087,7 +2241,7 @@ function SimuladorScreen() {
       setSimulacionId(simulacionIdRespuesta);
 
       const calculo = await fetch(
-        `/api/simulaciones?id_simulacion=${simulacionIdRespuesta}`
+        `/api/simulaciones?id_simulacion=${simulacionIdRespuesta}&includeRaw=1`
       );
       const resultadoCalculo = await calculo.json();
       if (!calculo.ok)
@@ -2096,7 +2250,17 @@ function SimuladorScreen() {
         );
 
       setResultado(resultadoCalculo);
-      generarFechasCronograma(resultadoCalculo.data.length);
+      setVistaSimulador("detalle");
+      const info = resultadoCalculo.simulacionInfo as
+        | SimulacionPersistida
+        | undefined;
+      if (info) {
+        setSimulacionSeleccionada(info);
+        prepararFormularioDesdeInfo(info);
+        generarFechasCronograma(resultadoCalculo.data.length, info.fecha_inicio);
+      } else {
+        generarFechasCronograma(resultadoCalculo.data.length);
+      }
       setFeedback({
         type: "success",
         message: simulacionId
@@ -2415,27 +2579,84 @@ function SimuladorScreen() {
   }
 
   const formatNumber = (value: number | string) => {
-  if (value === null || value === undefined || value === "") return "";
-  const num = Number(String(value).replace(/,/g, ""));
-  if (isNaN(num)) return "";
-  return new Intl.NumberFormat("es-PE").format(num); // comas de miles
-};
+    if (value === null || value === undefined || value === "") return "";
+    const num = Number(String(value).replace(/,/g, ""));
+    if (isNaN(num)) return "";
+    return new Intl.NumberFormat("es-PE").format(num); // comas de miles
+  };
+  const simulacionesGuardadasFiltradas = useMemo(() => {
+    const criterio = busquedaSimulacion.trim().toLowerCase();
+    if (!criterio) return simulacionesGuardadas;
+
+    return simulacionesGuardadas.filter((sim) => {
+      const nombreCliente = `${sim.cliente.nombres} ${sim.cliente.apellidos}`.toLowerCase();
+      const dni = sim.cliente.dni?.toLowerCase() ?? "";
+      const propiedad = sim.inmueble.nombre_proyecto.toLowerCase();
+      return (
+        nombreCliente.includes(criterio) ||
+        dni.includes(criterio) ||
+        propiedad.includes(criterio)
+      );
+    });
+  }, [busquedaSimulacion, simulacionesGuardadas]);
+
+  const metricasResultado = useMemo(() => {
+    if (!resultado) return null;
+
+    let totalInteres = 0;
+    let totalAmortizacion = 0;
+    let totalSeguros = 0;
+    let totalPortes = 0;
+    let totalGastos = 0;
+
+    resultado.data.forEach((fila) => {
+      totalInteres += Number(fila[0] ?? 0);
+      totalAmortizacion += Number(fila[1] ?? 0);
+      totalSeguros += Number(fila[2] ?? 0) + Number(fila[3] ?? 0);
+      totalPortes += Number(fila[4] ?? 0);
+      totalGastos += Number(fila[5] ?? 0);
+    });
+
+    const totalPagado =
+      totalInteres + totalAmortizacion + totalSeguros + totalPortes + totalGastos;
+
+    return {
+      totalInteres,
+      totalAmortizacion,
+      totalSeguros,
+      totalPortes,
+      totalGastos,
+      totalPagado,
+    };
+  }, [resultado]);
   const contenidoResultados = resultado ? (
     <section className="space-y-6">
       <div className="rounded-[32px] bg-white p-6 shadow-xl">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold text-slate-900">
-              Simulador de Créditos
+              {simulacionSeleccionada
+                ? `Simulación de ${simulacionSeleccionada.cliente.nombres} ${simulacionSeleccionada.cliente.apellidos}`
+                : "Simulación de crédito"}
             </h2>
             <p className="text-sm text-slate-500">
-              Resumen de indicadores y cronograma generado.
+              {simulacionSeleccionada?.inmueble.nombre_proyecto ||
+                "Resumen de indicadores y cronograma generado."}
             </p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
+            {vistaSimulador === "detalle" && (
+              <button
+                type="button"
+                onClick={() => setVistaSimulador("lista")}
+                className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600"
+              >
+                Volver al listado
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => setResultado(null)}
+              onClick={irAEdicion}
               className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600"
             >
               Editar simulación
@@ -2443,14 +2664,14 @@ function SimuladorScreen() {
             <button
               type="button"
               onClick={exportarExcel}
-              className="rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold shadow hover:bg-brand-500"
+              className="rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold shadow hover:bg-brand-500 text-white"
             >
               Exportar a Excel
             </button>
             <button
               type="button"
               onClick={generarPDF}
-              className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-semibold shadow hover:bg-rose-500"
+              className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-rose-500"
             >
               Descargar y envviar por correo
             </button>
@@ -2476,9 +2697,9 @@ function SimuladorScreen() {
             title="Plazo (meses)"
             value={`${resultado.resumen.plazo_meses}`}
           />
-          <ResumenCard 
-            title="TEM" 
-            value={` ${(resultado.resumen.TEM*100).toFixed(5)}%`} 
+          <ResumenCard
+            title="TEM"
+            value={` ${(resultado.resumen.TEM * 100).toFixed(5)}%`}
           />
           <ResumenCard
             title="Monto préstamo"
@@ -2487,6 +2708,82 @@ function SimuladorScreen() {
             )}
           />
         </div>
+
+        {metricasResultado && (
+          <div className="mt-8 grid gap-6 lg:grid-cols-3">
+            <div className="rounded-3xl border border-slate-100 bg-slate-50 p-6">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Solicitud vs interés
+              </h3>
+              <p className="text-sm text-slate-500">
+                Comparativo de capital amortizado frente a intereses y costos.
+              </p>
+              <div className="mt-4 flex items-center gap-4">
+                {(() => {
+                  const totalPie =
+                    metricasResultado.totalAmortizacion +
+                    metricasResultado.totalInteres;
+                  const principalPct =
+                    totalPie === 0
+                      ? 0
+                      : (metricasResultado.totalAmortizacion / totalPie) * 100;
+                  const interesPct = 100 - principalPct;
+                  return (
+                    <div className="flex items-center gap-4">
+                      <div
+                        className="h-28 w-28 rounded-full border border-slate-200"
+                        style={{
+                          background: `conic-gradient(#0ea5e9 0% ${principalPct}%, #f97316 ${principalPct}% 100%)`,
+                        }}
+                        aria-label="Gráfico de capital vs intereses"
+                      />
+                      <div className="space-y-1 text-sm text-slate-600">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-sky-500" />
+                          <span>
+                            Capital amortizado: {currencyFormatter.format(
+                              metricasResultado.totalAmortizacion
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-orange-500" />
+                          <span>
+                            Intereses: {currencyFormatter.format(
+                              metricasResultado.totalInteres
+                            )}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          {principalPct.toFixed(1)}% capital / {interesPct.toFixed(1)}%
+                          interés
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+            <div className="lg:col-span-2 grid gap-3 sm:grid-cols-2">
+              <ResumenCard
+                title="Total pagado"
+                value={currencyFormatter.format(metricasResultado.totalPagado)}
+              />
+              <ResumenCard
+                title="Seguros acumulados"
+                value={currencyFormatter.format(metricasResultado.totalSeguros)}
+              />
+              <ResumenCard
+                title="Portes"
+                value={currencyFormatter.format(metricasResultado.totalPortes)}
+              />
+              <ResumenCard
+                title="Gastos administrativos"
+                value={currencyFormatter.format(metricasResultado.totalGastos)}
+              />
+            </div>
+          </div>
+        )}
 
         <div className="mt-8">
           <div className="mb-3 flex items-center justify-between">
@@ -2542,6 +2839,128 @@ function SimuladorScreen() {
     </section>
   ) : null;
 
+  const listadoSimulaciones = (
+    <div className="rounded-[32px] bg-white p-6 shadow-xl">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-900">
+            Simulaciones registradas
+          </h2>
+          <p className="text-sm text-slate-500">
+            Busca por DNI, nombre o propiedad para revisar los registros previos.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setVistaSimulador("form");
+              setResultado(null);
+              setFeedback(null);
+            }}
+            className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600"
+          >
+            Volver al simulador
+          </button>
+          <button
+            type="button"
+            onClick={cargarSimulacionesGuardadas}
+            className="rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500 disabled:opacity-60"
+            disabled={cargandoLista}
+          >
+            {cargandoLista ? "Actualizando…" : "Actualizar lista"}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex max-w-md items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2">
+          <span className="text-xl text-slate-400">🔍</span>
+          <input
+            value={busquedaSimulacion}
+            onChange={(e) => setBusquedaSimulacion(e.target.value)}
+            placeholder="Buscar por DNI, nombre o propiedad"
+            className="w-full border-none bg-transparent text-sm text-slate-700 outline-none"
+          />
+        </div>
+        <p className="text-sm text-slate-500">
+          {simulacionesGuardadasFiltradas.length} simulaciones encontradas
+        </p>
+      </div>
+
+      {errorListado && (
+        <div className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-100">
+          {errorListado}
+        </div>
+      )}
+
+      <div className="mt-4 overflow-auto rounded-3xl border border-slate-100 max-h-[65vh]">
+        <table className="min-w-full divide-y divide-slate-100 text-sm">
+          <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3 text-left">N°</th>
+              <th className="px-4 py-3 text-left">Cliente</th>
+              <th className="px-4 py-3 text-left">Propiedad</th>
+              <th className="px-4 py-3 text-left">Monto préstamo</th>
+              <th className="px-4 py-3 text-left">Tasa interés</th>
+              <th className="px-4 py-3 text-left">Fecha</th>
+              <th className="px-4 py-3 text-left">Acciones</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {simulacionesGuardadasFiltradas.map((simulacion, index) => (
+              <tr key={simulacion.id_simulacion} className="hover:bg-slate-50">
+                <td className="px-4 py-3 text-slate-600">{index + 1}</td>
+                <td className="px-4 py-3 text-slate-600">
+                  <div className="font-semibold">{`${simulacion.cliente.nombres} ${simulacion.cliente.apellidos}`}</div>
+                  <div className="text-xs text-slate-500">DNI: {simulacion.cliente.dni}</div>
+                </td>
+                <td className="px-4 py-3 text-slate-600">
+                  {simulacion.inmueble.nombre_proyecto}
+                </td>
+                <td className="px-4 py-3 text-slate-600">
+                  {currencyFormatter.format(simulacion.monto_prestamo)}
+                </td>
+                <td className="px-4 py-3 text-slate-600">
+                  {simulacion.tasa_interes}% ({simulacion.tipo_tasa})
+                </td>
+                <td className="px-4 py-3 text-slate-600">
+                  {new Date(simulacion.fecha_inicio).toLocaleDateString()}
+                </td>
+                <td className="px-4 py-3 text-slate-600">
+                  <button
+                    type="button"
+                    onClick={() => verDetalleSimulacion(simulacion.id_simulacion)}
+                    className="rounded-xl bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow hover:bg-brand-500"
+                  >
+                    Ver más
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {cargandoLista && (
+        <p className="mt-3 text-sm text-slate-500">Cargando simulaciones...</p>
+      )}
+      {!cargandoLista && simulacionesGuardadasFiltradas.length === 0 && (
+        <p className="mt-3 text-sm text-slate-500">
+          No se encontraron simulaciones registradas.
+        </p>
+      )}
+    </div>
+  );
+
+  const mostrandoLista = vistaSimulador === "lista";
+  const mostrandoResultados = vistaSimulador === "detalle" && !!resultado;
+  const mostrandoFormulario = vistaSimulador === "form" && !resultado;
+
+  if (mostrandoLista) {
+    return <section className="space-y-6">{listadoSimulaciones}</section>;
+  }
+
   return (
     <section className="space-y-6">
       <div className="flex flex-col gap-4 rounded-[32px] bg-white p-6 shadow-xl">
@@ -2554,12 +2973,21 @@ function SimuladorScreen() {
               Ingresa los datos para obtener indicadores y el cronograma.
             </p>
           </div>
-          <button className="rounded-2xl bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700">
-            Visualizar simulaciones
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setVistaSimulador("lista");
+                setResultado(null);
+              }}
+              className="rounded-2xl bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700"
+            >
+              Visualizar simulaciones
+            </button>
+          </div>
         </div>
 
-        {feedback && (
+        {feedback && vistaSimulador !== "lista" && (
           <div
             className={`rounded-2xl px-4 py-3 text-sm ${
               feedback.type === "error"
@@ -2571,7 +2999,7 @@ function SimuladorScreen() {
           </div>
         )}
 
-        {!resultado && (
+        {mostrandoFormulario && (
           <form
             className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
             onSubmit={manejarCalculo}
@@ -2799,14 +3227,25 @@ function SimuladorScreen() {
             </Field>
 
             <Field label="Fecha de Desembolso">
-              <input
-                type="date"
-                value={form.fechaDesembolso}
-                onChange={(e) =>
-                  actualizarForm("fechaDesembolso", e.target.value)
-                }
-                className={inputBaseClasses}
-              />
+              <div className="space-y-1">
+                <input
+                  type="date"
+                  value={form.fechaDesembolso}
+                  min={simulacionId ? undefined : fechaHoy}
+                  disabled={!!simulacionId}
+                  onChange={(e) =>
+                    actualizarForm("fechaDesembolso", e.target.value)
+                  }
+                  className={`${inputBaseClasses} ${
+                    simulacionId ? "cursor-not-allowed bg-slate-100" : ""
+                  }`}
+                />
+                {simulacionId && (
+                  <p className="text-xs text-slate-500">
+                    Para ediciones se conserva la fecha registrada originalmente.
+                  </p>
+                )}
+              </div>
             </Field>
 
             <Field label="Plazo (meses)">
@@ -2992,14 +3431,20 @@ function SimuladorScreen() {
                 disabled={loading}
                 className="rounded-2xl bg-brand-600 px-6 py-2 font-semibold shadow hover:bg-brand-500 disabled:opacity-50"
               >
-                {loading ? "Calculando…" : "Calcular"}
+                {loading
+                  ? simulacionId
+                    ? "Actualizando…"
+                    : "Calculando…"
+                  : simulacionId
+                  ? "Actualizar"
+                  : "Calcular"}
               </button>
             </div>
           </form>
         )}
       </div>
 
-      {contenidoResultados}
+      {mostrandoResultados && contenidoResultados}
     </section>
   );
 }

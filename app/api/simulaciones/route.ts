@@ -208,8 +208,6 @@ export async function PUT(req: Request) {
       errores.push('La cuota inicial (CI) debe estar entre 7.5% y 100%.')
     if (plazo_meses < 60 || plazo_meses > 300)
       errores.push('El plazo en meses (n) debe estar entre 60 y 300.')
-    if (inicio < hoy)
-      errores.push('La fecha de desembolso no puede ser anterior a hoy.')
     if (tasa_interes <= 0)
       errores.push('La tasa de interés (i) debe ser mayor que 0.')
     if (plazo_tasa_interes < 0 || plazo_tasa_interes > 7)
@@ -283,11 +281,41 @@ export async function PUT(req: Request) {
 // ============================================================
  export async function GET(req: Request) {
 
-    
+
 try {
 // === Leer parámetros desde la URL ===
 const { searchParams } = new URL(req.url)
 const idParam = searchParams.get("id_simulacion") ?? searchParams.get("id")
+const view = searchParams.get("view")
+const includeRaw = searchParams.get("includeRaw") === "1"
+
+if (view === "list") {
+  const simulaciones = await db.simulacion.findMany({
+    orderBy: { id_simulacion: "desc" },
+    include: { cliente: true, inmueble: true },
+  })
+
+  const listaLimpia = simulaciones.map((sim) => ({
+    ...sim,
+    tasa_interes: Number(sim.tasa_interes),
+    monto_prestamo: Number(sim.monto_prestamo),
+    cuota_inicial: Number(sim.cuota_inicial),
+    monto_bono_bbp: sim.monto_bono_bbp ? Number(sim.monto_bono_bbp) : 0,
+    portes: sim.portes ? Number(sim.portes) : 0,
+    tem_seguro_desgravamen: sim.tem_seguro_desgravamen
+      ? Number(sim.tem_seguro_desgravamen)
+      : 0,
+    tasa_seguro_inmueble: sim.tasa_seguro_inmueble
+      ? Number(sim.tasa_seguro_inmueble)
+      : 0,
+    gastosAdministrativos: sim.gastosAdministrativos
+      ? Number(sim.gastosAdministrativos)
+      : 0,
+    costosIniciales: sim.costosIniciales ? Number(sim.costosIniciales) : 0,
+  }))
+
+  return NextResponse.json(listaLimpia)
+}
 
 console.log("🔍 ID recibido:", idParam)
 
@@ -296,12 +324,12 @@ let simulacion
 if (idParam) {
   simulacion = await db.simulacion.findUnique({
     where: { id_simulacion: Number(idParam) },
-    include: { cliente: true }
+    include: { cliente: true, inmueble: true }
   })
 } else {
   simulacion = await db.simulacion.findFirst({
     orderBy: { id_simulacion: "desc" },
-    include: { cliente: true }
+    include: { cliente: true, inmueble: true }
   })
 }
 
@@ -514,9 +542,36 @@ if (g === 0) {
 } else if (g === 2) {
   descripcionGracia = `Gracia total por ${pg} meses (no paga nada)`
 }
+    const simulacionInfo = includeRaw
+      ? {
+          ...simulacion,
+          tasa_interes: Number(simulacion.tasa_interes),
+          monto_prestamo: Number(simulacion.monto_prestamo),
+          cuota_inicial: Number(simulacion.cuota_inicial),
+          plazo_meses: simulacion.plazo_meses,
+          plazo_tasa_interes: simulacion.plazo_tasa_interes,
+          monto_bono_bbp: simulacion.monto_bono_bbp
+            ? Number(simulacion.monto_bono_bbp)
+            : 0,
+          tem_seguro_desgravamen: simulacion.tem_seguro_desgravamen
+            ? Number(simulacion.tem_seguro_desgravamen)
+            : 0,
+          tasa_seguro_inmueble: simulacion.tasa_seguro_inmueble
+            ? Number(simulacion.tasa_seguro_inmueble)
+            : 0,
+          portes: simulacion.portes ? Number(simulacion.portes) : 0,
+          gastosAdministrativos: simulacion.gastosAdministrativos
+            ? Number(simulacion.gastosAdministrativos)
+            : 0,
+          costosIniciales: simulacion.costosIniciales
+            ? Number(simulacion.costosIniciales)
+            : 0,
+        }
+      : undefined
+
     return NextResponse.json({
 
-      
+
       resumen: {
         tipo_tasa: simulacion.tipo_tasa,
         capitalizacion: simulacion.capitalizacion,
@@ -538,7 +593,8 @@ if (g === 0) {
         TCEA: Number((TCEA * 100).toFixed(2)) + "%"
       },
       headers: [/*"CuotaBase","Cuota",*/"Interes","Amort","Seg. Des.","Seg. Inm.","Porte","Gastos Admin","Flujo","Saldo Final"],
-      data: Flujos
+      data: Flujos,
+      simulacionInfo
     })
 
   } catch (error) {
