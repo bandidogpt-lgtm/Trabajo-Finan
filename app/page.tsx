@@ -1850,6 +1850,27 @@ function SimuladorScreen() {
     []
   );
 
+  const cargarSimulacionesGuardadas = useCallback(async () => {
+    try {
+      setCargandoLista(true);
+      setErrorListado(null);
+      const res = await fetch("/api/simulaciones?view=list", {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(
+          data.error || "No se pudo obtener las simulaciones registradas"
+        );
+      }
+      setSimulacionesGuardadas(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setErrorListado((error as Error).message);
+    } finally {
+      setCargandoLista(false);
+    }
+  }, []);
+
   useEffect(() => {
     obtenerClientes();
     obtenerInmuebles();
@@ -2050,27 +2071,6 @@ function SimuladorScreen() {
     setVistaSimulador("form");
     setFeedback(null);
   }
-
-  const cargarSimulacionesGuardadas = useCallback(async () => {
-    try {
-      setCargandoLista(true);
-      setErrorListado(null);
-      const res = await fetch("/api/simulaciones?view=list", {
-        cache: "no-store",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(
-          data.error || "No se pudo obtener las simulaciones registradas"
-        );
-      }
-      setSimulacionesGuardadas(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setErrorListado((error as Error).message);
-    } finally {
-      setCargandoLista(false);
-    }
-  }, []);
 
   function seleccionarCliente(cliente: Cliente) {
     setForm((prev) => ({
