@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
 type TourStep = {
   id: string;
@@ -50,6 +50,11 @@ export function HelpAssistant({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null);
   const [tourScope, setTourScope] = useState<string | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelStyle, setPanelStyle] = useState<{
+    transform: string;
+    opacity: number;
+  }>({ transform: "translate(0, 0) scale(1)", opacity: 1 });
 
   const currentStep = steps[currentStepIndex];
 
@@ -92,6 +97,7 @@ export function HelpAssistant({
   useEffect(() => {
     if (!isTourActive) {
       setSpotlight(null);
+      setPanelStyle({ transform: "translate(0, 0) scale(1)", opacity: 1 });
       return;
     }
 
@@ -107,12 +113,46 @@ export function HelpAssistant({
 
       const updateSpotlight = () => {
         const rect = targetElement.getBoundingClientRect();
-
-        setSpotlight({
+        const spotlightRect = {
           top: rect.top + window.scrollY,
           left: rect.left + window.scrollX,
           width: rect.width,
           height: rect.height,
+        };
+
+        setSpotlight(spotlightRect);
+
+        const panelElement = panelRef.current;
+        if (!panelElement) return;
+
+        const panelRect = panelElement.getBoundingClientRect();
+        const spotlightViewport = {
+          top: spotlightRect.top - window.scrollY,
+          left: spotlightRect.left - window.scrollX,
+          width: spotlightRect.width,
+          height: spotlightRect.height,
+        };
+
+        const buffer = 16;
+        const intersects = !(
+          spotlightViewport.left + spotlightViewport.width + buffer < panelRect.left ||
+          spotlightViewport.left - buffer > panelRect.right ||
+          spotlightViewport.top + spotlightViewport.height + buffer < panelRect.top ||
+          spotlightViewport.top - buffer > panelRect.bottom
+        );
+
+        if (!intersects) {
+          setPanelStyle({ transform: "translate(0, 0) scale(1)", opacity: 1 });
+          return;
+        }
+
+        const spotlightCenterY = spotlightViewport.top + spotlightViewport.height / 2;
+        const panelCenterY = panelRect.top + panelRect.height / 2;
+        const verticalShift = spotlightCenterY < panelCenterY ? 32 : -32;
+
+        setPanelStyle({
+          transform: `translate(36px, ${verticalShift}px) scale(0.94)`,
+          opacity: 0.92,
         });
       };
 
@@ -150,7 +190,7 @@ export function HelpAssistant({
 
     setIsTourActive(true);
     setCurrentStepIndex(startIndex);
-    setIsOpen(stepId ? true : false);
+    setIsOpen(true);
   }
 
   function stopTour() {
@@ -224,7 +264,11 @@ export function HelpAssistant({
 
       {isOpen && (
         <div className="pointer-events-none fixed inset-0 z-20 flex items-end justify-end bg-transparent p-4 sm:items-start sm:p-8">
-          <div className="pointer-events-auto w-full min-w-[380px] max-w-[420px] rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+          <div
+            ref={panelRef}
+            style={panelStyle}
+            className="pointer-events-auto w-full min-w-[380px] max-w-[420px] rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200 transition-transform duration-200 ease-out"
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
