@@ -10,8 +10,16 @@ type TourStep = {
   targetRef?: RefObject<HTMLElement>;
 };
 
+type SectionTour = {
+  id: string;
+  label: string;
+  description?: string;
+  stepIds: string[];
+};
+
 type HelpAssistantProps = {
   steps: TourStep[];
+  sectionTours?: SectionTour[];
   manualUrl: string;
   onStepChange?: (stepId: string) => void;
 };
@@ -23,7 +31,12 @@ type SpotlightRect = {
   height: number;
 };
 
-export function HelpAssistant({ steps, manualUrl, onStepChange }: HelpAssistantProps) {
+export function HelpAssistant({
+  steps,
+  sectionTours,
+  manualUrl,
+  onStepChange,
+}: HelpAssistantProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isTourActive, setIsTourActive] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
@@ -90,9 +103,15 @@ export function HelpAssistant({ steps, manualUrl, onStepChange }: HelpAssistantP
     };
   }, [currentStep, isTourActive]);
 
-  function startTour() {
+  function startTour(stepId?: string) {
+    const startIndex = stepId
+      ? steps.findIndex((step) => step.id === stepId)
+      : 0;
+
+    if (startIndex === -1) return;
+
     setIsTourActive(true);
-    setCurrentStepIndex(0);
+    setCurrentStepIndex(startIndex);
     setIsOpen(true);
   }
 
@@ -164,29 +183,61 @@ export function HelpAssistant({ steps, manualUrl, onStepChange }: HelpAssistantP
             </div>
 
             <div className="mt-4 space-y-3">
-              <button
-                type="button"
-                onClick={startTour}
-                className="flex w-full items-center justify-between rounded-2xl bg-[#0f1c2f] px-4 py-3 text-left text-sm font-semibold text-white shadow-md transition hover:translate-y-[-1px] hover:shadow-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      className="h-6 w-6"
-                    >
-                      <path d="M12 2.25a.75.75 0 0 0-.671.414L8.68 7.5H4.75a.75.75 0 0 0-.543 1.282l3.224 3.395-1.022 4.623a.75.75 0 0 0 1.11.81L12 15.777l4.48 1.833a.75.75 0 0 0 1.07-.852l-.983-4.53 3.178-3.356A.75.75 0 0 0 18.934 7.5h-3.902l-2.61-4.836A.75.75 0 0 0 12 2.25Z" />
-                    </svg>
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => startTour()}
+                  className="flex w-full items-center justify-between rounded-2xl bg-[#0f1c2f] px-4 py-3 text-left text-sm font-semibold text-white shadow-md transition hover:translate-y-[-1px] hover:shadow-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        className="h-6 w-6"
+                      >
+                        <path d="M12 2.25a.75.75 0 0 0-.671.414L8.68 7.5H4.75a.75.75 0 0 0-.543 1.282l3.224 3.395-1.022 4.623a.75.75 0 0 0 1.11.81L12 15.777l4.48 1.833a.75.75 0 0 0 1.07-.852l-.983-4.53 3.178-3.356A.75.75 0 0 0 18.934 7.5h-3.902l-2.61-4.836A.75.75 0 0 0 12 2.25Z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Recorrido completo</p>
+                      <p className="text-xs text-slate-200">Activa el spotlight y sigue todas las secciones.</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold">Iniciar recorrido guiado</p>
-                    <p className="text-xs text-slate-200">Activa el spotlight y sigue las indicaciones paso a paso.</p>
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">{steps.length} pasos</span>
+                </button>
+
+                {sectionTours?.length ? (
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                      Recorridos por sección
+                    </p>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {sectionTours.map((section) => {
+                        const firstStep = steps.find((step) => section.stepIds.includes(step.id));
+                        if (!firstStep) return null;
+
+                        return (
+                          <button
+                            key={section.id}
+                            type="button"
+                            onClick={() => startTour(firstStep.id)}
+                            className="flex flex-col items-start gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:border-[#0f1c2f] hover:bg-white"
+                          >
+                            <span className="inline-flex rounded-full bg-[#0f1c2f]/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#0f1c2f]">
+                              {section.label}
+                            </span>
+                            <span className="text-xs font-normal text-slate-600">
+                              {section.description ?? "Recorrido específico de esta sección"}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-                <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">{steps.length} pasos</span>
-              </button>
+                ) : null}
+              </div>
 
               <a
                 href={manualUrl}
@@ -265,11 +316,18 @@ export function HelpAssistant({ steps, manualUrl, onStepChange }: HelpAssistantP
               )}
             </div>
 
-            <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm">
               <div className="text-xs text-slate-500">
                 Paso {currentStepIndex + 1} de {steps.length}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={stopTour}
+                  className="rounded-xl bg-slate-100 px-3 py-2 font-semibold text-slate-700 hover:bg-slate-200"
+                >
+                  Omitir
+                </button>
                 <button
                   type="button"
                   onClick={() => goToStep(-1)}

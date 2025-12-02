@@ -273,6 +273,33 @@ export default function Home() {
     },
   ];
 
+  const sectionTours = [
+    {
+      id: "inicio",
+      label: "Inicio",
+      description: "Indicadores, resumen del portafolio y métricas principales",
+      stepIds: ["inicio:indicadores"],
+    },
+    {
+      id: "clientes",
+      label: "Clientes",
+      description: "Registro, edición, eliminación y detalle de clientes",
+      stepIds: ["clientes:gestion"],
+    },
+    {
+      id: "propiedades",
+      label: "Propiedades",
+      description: "Carga, imágenes, metrajes, precios y filtros del inventario",
+      stepIds: ["propiedades:inventario"],
+    },
+    {
+      id: "simulador",
+      label: "Simulaciones",
+      description: "Selección de cliente y propiedad, parámetros y exportaciones",
+      stepIds: ["simulador:credito"],
+    },
+  ];
+
   const handleTourStepChange = useCallback((stepId: string) => {
     if (stepId.startsWith("inicio")) {
       setActiveSection("inicio");
@@ -343,6 +370,7 @@ export default function Home() {
       </div>
       <HelpAssistant
         steps={tourSteps}
+        sectionTours={sectionTours}
         manualUrl="/manual-usuario.pdf"
         onStepChange={handleTourStepChange}
       />
