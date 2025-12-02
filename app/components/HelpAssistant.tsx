@@ -58,8 +58,6 @@ export function HelpAssistant({
 
   const currentStep = steps[currentStepIndex];
 
-  const isFullTour = !tourScope;
-
   const scopedSteps = useMemo(
     () => (tourScope ? steps.filter((step) => step.id.startsWith(tourScope)) : steps),
     [steps, tourScope],
@@ -176,15 +174,11 @@ export function HelpAssistant({
     };
   }, [currentStep, isTourActive]);
 
-  function startTour(stepId?: string) {
-    const startIndex = stepId ? steps.findIndex((step) => step.id === stepId) : 0;
+  function startTour(stepId: string) {
+    const startIndex = steps.findIndex((step) => step.id === stepId);
 
-    if (stepId) {
-      const [scopePrefix] = stepId.split(":");
-      setTourScope(scopePrefix ?? null);
-    } else {
-      setTourScope(null);
-    }
+    const [scopePrefix] = stepId.split(":");
+    setTourScope(scopePrefix ?? null);
 
     if (startIndex === -1) return;
 
@@ -276,7 +270,7 @@ export function HelpAssistant({
                 </p>
                 <h2 className="text-xl font-semibold text-slate-900">¿Necesitas ayuda?</h2>
                 <p className="mt-1 text-sm text-slate-600">
-                  Sigue el recorrido guiado o descarga el manual para conocer cada funcionalidad de la plataforma.
+                  Elige el recorrido de esta vista o descarga el manual para conocer cada funcionalidad sin salir de la pantalla.
                 </p>
               </div>
 
@@ -294,77 +288,51 @@ export function HelpAssistant({
             </div>
 
             <div className="mt-4 max-h-[72vh] space-y-4 overflow-y-auto pr-1">
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => startTour()}
-                  className="flex w-full items-center justify-between rounded-2xl bg-[#0f1c2f] px-4 py-3 text-left text-sm font-semibold text-white shadow-md transition hover:translate-y-[-1px] hover:shadow-lg"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        className="h-6 w-6"
-                      >
-                        <path d="M12 2.25a.75.75 0 0 0-.671.414L8.68 7.5H4.75a.75.75 0 0 0-.543 1.282l3.224 3.395-1.022 4.623a.75.75 0 0 0 1.11.81L12 15.777l4.48 1.833a.75.75 0 0 0 1.07-.852l-.983-4.53 3.178-3.356A.75.75 0 0 0 18.934 7.5h-3.902l-2.61-4.836A.75.75 0 0 0 12 2.25Z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">Recorrido completo</p>
-                      <p className="text-xs text-slate-200">Activa el spotlight y sigue todas las secciones.</p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">{steps.length} pasos</span>
-                </button>
+              {visibleSectionTours.length ? (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                    Recorridos de la vista actual
+                  </p>
+                  {visibleSectionTours.map((section) => (
+                    <div key={section.id} className="grid grid-cols-1 gap-3">
+                      {section.cards.slice(0, 4).map((card) => {
+                        const startingStep = steps.find((step) => step.id === card.startStepId);
+                        if (!startingStep) return null;
 
-                {visibleSectionTours.length ? (
-                  <div className="space-y-3">
-                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-                      Recorridos de la vista actual
-                    </p>
-                    {visibleSectionTours.map((section) => (
-                      <div key={section.id} className="grid grid-cols-1 gap-3">
-                        {section.cards.slice(0, 4).map((card) => {
-                          const startingStep = steps.find((step) => step.id === card.startStepId);
-                          if (!startingStep) return null;
-
-                          return (
-                            <button
-                              key={card.id}
-                              type="button"
-                              onClick={() => startTour(card.startStepId)}
-                              className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:-translate-y-[1px] hover:border-[#0f1c2f] hover:shadow-lg"
-                            >
-                              <div className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#0f1c2f]/10 text-[#0f1c2f]">
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  strokeWidth={1.5}
-                                  stroke="currentColor"
-                                  className="h-5 w-5"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    d="M12 6v6h4.5m4.125-1.5a8.625 8.625 0 1 1-17.25 0 8.625 8.625 0 0 1 17.25 0Z"
-                                  />
-                                </svg>
-                              </div>
-                              <div>
-                                <p className="text-sm font-semibold text-slate-900">{card.label}</p>
-                                <p className="text-xs font-normal text-slate-600">{card.description}</p>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
+                        return (
+                          <button
+                            key={card.id}
+                            type="button"
+                            onClick={() => startTour(card.startStepId)}
+                            className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:-translate-y-[1px] hover:border-[#0f1c2f] hover:shadow-lg"
+                          >
+                            <div className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#0f1c2f]/10 text-[#0f1c2f]">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth={1.5}
+                                stroke="currentColor"
+                                className="h-5 w-5"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  d="M12 6v6h4.5m4.125-1.5a8.625 8.625 0 1 1-17.25 0 8.625 8.625 0 0 1 17.25 0Z"
+                                />
+                              </svg>
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold text-slate-900">{card.label}</p>
+                              <p className="text-xs font-normal text-slate-600">{card.description}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
 
               <a
                 href={manualUrl}
@@ -388,7 +356,7 @@ export function HelpAssistant({
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                 <p className="font-semibold text-slate-900">Contenido del tour</p>
                 <ul className="mt-2 space-y-1 text-slate-600">
-                  {steps.map((step) => (
+                  {(tourScope ? scopedSteps : steps.filter((step) => step.id.startsWith(activeSection ?? ""))).map((step) => (
                     <li key={step.id} className="flex items-start gap-2">
                       <span className="mt-1 h-2 w-2 rounded-full bg-[#0f1c2f]" aria-hidden />
                       <span>
@@ -412,9 +380,7 @@ export function HelpAssistant({
               left: spotlight.left - 12,
               width: spotlight.width + 24,
               height: spotlight.height + 24,
-              boxShadow: isFullTour
-                ? "0 0 0 9999px rgba(15, 28, 47, 0.65)"
-                : "0 0 0 14px rgba(15, 28, 47, 0.18)",
+              boxShadow: "0 0 0 18px rgba(15, 28, 47, 0.2)",
             }}
           />
 

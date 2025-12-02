@@ -219,7 +219,9 @@ export default function Home() {
   const clientesSubmitRef = useRef<HTMLButtonElement>(null);
   const propiedadesSubmitRef = useRef<HTMLButtonElement>(null);
   const propiedadesAreaRef = useRef<HTMLInputElement>(null);
+  const propiedadesEditarRef = useRef<HTMLButtonElement>(null);
   const propiedadesImagenRef = useRef<HTMLInputElement>(null);
+  const propiedadesImagenBotonRef = useRef<HTMLButtonElement>(null);
   const propiedadesFiltroRef = useRef<HTMLInputElement>(null);
   const simuladorClienteRef = useRef<HTMLInputElement>(null);
   const simuladorPropiedadRef = useRef<HTMLInputElement>(null);
@@ -346,7 +348,7 @@ export default function Home() {
         "Guarda los cambios para mantener consistencia con las simulaciones.",
         "Verifica metrajes y monedas antes de confirmar.",
       ],
-      targetRef: propiedadesAreaRef,
+      targetRef: propiedadesEditarRef,
     },
     {
       id: "propiedades:imagenes",
@@ -357,7 +359,7 @@ export default function Home() {
         "Carga imágenes en buena resolución y revisa las miniaturas.",
         "Elimina o reemplaza imágenes que ya no correspondan al inmueble.",
       ],
-      targetRef: propiedadesImagenRef,
+      targetRef: propiedadesImagenBotonRef,
     },
     {
       id: "propiedades:filtros",
@@ -603,7 +605,9 @@ export default function Home() {
                 searchTerm={globalSearch}
                 submitRef={propiedadesSubmitRef}
                 areaRef={propiedadesAreaRef}
+                editarRef={propiedadesEditarRef}
                 imagenRef={propiedadesImagenRef}
+                imagenBotonRef={propiedadesImagenBotonRef}
                 filtrosRef={propiedadesFiltroRef}
               />
             </div>
@@ -1735,13 +1739,17 @@ function InmueblesScreen({
   searchTerm,
   submitRef,
   areaRef,
+  editarRef,
   imagenRef,
+  imagenBotonRef,
   filtrosRef,
 }: {
   searchTerm: string;
   submitRef?: RefObject<HTMLButtonElement>;
   areaRef?: RefObject<HTMLInputElement>;
+  editarRef?: RefObject<HTMLButtonElement>;
   imagenRef?: RefObject<HTMLInputElement>;
+  imagenBotonRef?: RefObject<HTMLButtonElement>;
   filtrosRef?: RefObject<HTMLInputElement>;
 }) {
   const [inmuebles, setInmuebles] = useState<Inmueble[]>([]);
@@ -1967,16 +1975,16 @@ function InmueblesScreen({
                     </td>
                   </tr>
                 )}
-                {filteredInmuebles.map((inmueble) => (
+                {filteredInmuebles.map((inmueble, index) => (
                   <tr key={inmueble.id}>
                     <td className="px-6 py-4">
                       {inmueble.imagen_referencial ? (
-                        // eslint-disable-next-line @next/next/no-img-element                       
-                       <button onClick={() => setModalImageUrl(inmueble.imagen_referencial || null)}>
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <button onClick={() => setModalImageUrl(inmueble.imagen_referencial || null)}>
                           <img
                             src={inmueble.imagen_referencial}
                             alt={`Foto de ${inmueble.nombre_proyecto}`}
-                            className="h-16 w-24 rounded-2xl object-cover shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                            className="h-16 w-24 cursor-pointer rounded-2xl object-cover shadow-sm transition-transform hover:scale-105"
                           />
                         </button>
                       ) : (
@@ -2011,10 +2019,22 @@ function InmueblesScreen({
                           Ver más
                         </button>
                         <button
+                          ref={index === 0 ? editarRef : undefined}
                           onClick={() => editarInmueble(inmueble)}
                           className="rounded-full bg-brand-100 px-4 py-1 text-brand-700"
                         >
                           Editar
+                        </button>
+                        <button
+                          ref={index === 0 ? imagenBotonRef : undefined}
+                          onClick={() => {
+                            editarInmueble(inmueble);
+                            imagenRef?.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            imagenRef?.current?.focus();
+                          }}
+                          className="rounded-full bg-blue-100 px-4 py-1 text-blue-700"
+                        >
+                          Imágenes
                         </button>
                         <button
                           onClick={() => eliminarInmueble(inmueble.id)}
