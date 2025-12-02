@@ -209,7 +209,7 @@ export function HelpAssistant({
             return next;
           });
         }}
-        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#0f1c2f] text-white shadow-xl transition hover:scale-105"
+        className="fixed bottom-6 right-6 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-[#0f1c2f] text-white shadow-xl transition hover:scale-105"
         aria-label="Abrir asistencia"
       >
         <svg
@@ -223,7 +223,7 @@ export function HelpAssistant({
       </button>
 
       {isOpen && (
-        <div className="pointer-events-none fixed inset-0 z-30 flex items-end justify-end bg-transparent p-4 sm:items-start sm:p-8">
+        <div className="pointer-events-none fixed inset-0 z-20 flex items-end justify-end bg-transparent p-4 sm:items-start sm:p-8">
           <div className="pointer-events-auto w-full min-w-[380px] max-w-[420px] rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -360,7 +360,7 @@ export function HelpAssistant({
       )}
 
       {isTourActive && currentStep && spotlight && (
-        <div className="pointer-events-none fixed inset-0 z-50">
+        <div className="pointer-events-none fixed inset-0 z-[9999]">
           <div
             className="fixed rounded-3xl ring-4 ring-white/80 transition-all duration-200 ease-out"
             style={{
@@ -375,7 +375,7 @@ export function HelpAssistant({
           />
 
           <div
-            className="pointer-events-auto fixed z-50 max-w-sm rounded-2xl bg-white p-4 shadow-2xl ring-1 ring-slate-200"
+            className="pointer-events-auto fixed z-[9999] max-w-sm rounded-2xl bg-white p-4 shadow-2xl ring-1 ring-slate-200"
             style={{
               top: spotlight.top + spotlight.height + 16,
               left: Math.min(spotlight.left, window.innerWidth - 340),

@@ -1390,6 +1390,7 @@ function ClientesScreen({
               <input
                 value={localSearch}
                 onChange={(event) => setLocalSearch(event.target.value)}
+                ref={filterRef}
                 className="w-full border-none bg-transparent text-sm text-slate-700 outline-none"
                 placeholder="Ej. DNI, correo o apellido"
               />
@@ -1423,7 +1424,7 @@ function ClientesScreen({
                     </td>
                   </tr>
                 )}
-                {filteredClientes.map((cliente) => (
+                {filteredClientes.map((cliente, index) => (
                   <tr key={cliente.id}>
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-900">
@@ -1444,6 +1445,7 @@ function ClientesScreen({
                         className="flex flex-wrap gap-2 text-xs font-semibold"
                       >
                         <button
+                          ref={index === 0 ? detailRef : undefined}
                           onClick={() => verCliente(cliente.id)}
                           className="rounded-full bg-emerald-100 px-4 py-1 text-emerald-700"
                         >
