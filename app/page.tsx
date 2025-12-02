@@ -10,6 +10,7 @@ import {
   useState,
   useRef,
   ChangeEvent,
+  RefObject,
 } from "react";
 import { Cliente } from "@/types/cliente";
 import { Inmueble } from "@/types/inmueble";
@@ -17,6 +18,7 @@ import { useSession, signOut } from "next-auth/react";
 import * as XLSX from "xlsx-js-style";
 import ModalSimple from "@/app/components/ModalSimple";
 import ImageModal from "@/app/components/ImageModal";
+import { HelpAssistant, type TourStep } from "@/app/components/HelpAssistant";
 import {
   LineChart,
   Line,
@@ -203,11 +205,94 @@ const inputBaseClasses =
 export default function Home() {
   const [activeSection, setActiveSection] = useState<Section>("inicio");
   const [globalSearch, setGlobalSearch] = useState("");
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const inicioRef = useRef<HTMLDivElement>(null);
+  const clientesRef = useRef<HTMLDivElement>(null);
+  const propiedadesRef = useRef<HTMLDivElement>(null);
+  const simuladorRef = useRef<HTMLDivElement>(null);
+
+  const tourSteps: TourStep[] = [
+    {
+      id: "menu:navegacion",
+      title: "Navegación lateral",
+      description:
+        "Usa el menú para moverte entre Inicio, Clientes, Propiedades y el Simulador de Crédito sin perder el contexto.",
+      bullets: [
+        "Mantén fija la barra lateral para acceder rápidamente a cada módulo.",
+        "Identifica qué sección estás viendo por el realce de color azul oscuro.",
+      ],
+      targetRef: sidebarRef,
+    },
+    {
+      id: "inicio:indicadores",
+      title: "Inicio: indicadores y resumen",
+      description:
+        "Observa el tablero con los indicadores clave y el resumen del portafolio para tomar decisiones rápidas.",
+      bullets: [
+        "Los mosaicos muestran el total de clientes, inmuebles y proyectos sostenibles.",
+        "El resumen del portafolio explica cómo leer montos, TCEA y TIR para evaluar la salud financiera.",
+        "Las métricas se actualizan según los datos más recientes cargados en la plataforma.",
+      ],
+      targetRef: inicioRef,
+    },
+    {
+      id: "clientes:gestion",
+      title: "Clientes: registro y mantenimiento",
+      description:
+        "Administra toda la información de clientes desde un solo lugar con acciones claras y seguras.",
+      bullets: [
+        "Registra un cliente nuevo completando el formulario y marcando los campos obligatorios.",
+        "Edita o elimina registros desde la tabla; confirma los cambios con los botones de acción.",
+        "Accede al detalle para validar datos y entender qué representa cada campo antes del envío.",
+      ],
+      targetRef: clientesRef,
+    },
+    {
+      id: "propiedades:inventario",
+      title: "Propiedades: inventario y fichas",
+      description:
+        "Carga, organiza y filtra los inmuebles disponibles para vincularlos con las simulaciones.",
+      bullets: [
+        "Agrega un inmueble con su ubicación, metrajes, precios y tipo de propiedad.",
+        "Sube o revisa imágenes para mostrar referencias visuales al cliente.",
+        "Usa los filtros y acciones principales para buscar, editar o retirar propiedades del listado.",
+      ],
+      targetRef: propiedadesRef,
+    },
+    {
+      id: "simulador:credito",
+      title: "Simulador de crédito",
+      description:
+        "Configura el crédito, visualiza el cálculo completo y comparte los resultados con el cliente.",
+      bullets: [
+        "Selecciona el cliente y la propiedad, luego ingresa parámetros como tasa, plazos y capitalización.",
+        "Interpreta el cálculo generado, revisa el cronograma y monitorea las cuotas y seguros.",
+        "Exporta la simulación a Excel o descarga/envía el PDF del informe para compartirlo al instante.",
+      ],
+      targetRef: simuladorRef,
+    },
+  ];
+
+  const handleTourStepChange = useCallback((stepId: string) => {
+    if (stepId.startsWith("inicio")) {
+      setActiveSection("inicio");
+    } else if (stepId.startsWith("clientes")) {
+      setActiveSection("clientes");
+    } else if (stepId.startsWith("propiedades")) {
+      setActiveSection("propiedades");
+    } else if (stepId.startsWith("simulador")) {
+      setActiveSection("simulador");
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-100">
-        <div className="flex min-h-screen gap-4 p-4 sm:p-6">
-        <Sidebar activeSection={activeSection} onSelect={setActiveSection} />
+      <div className="flex min-h-screen gap-4 p-4 sm:p-6">
+        <Sidebar
+          activeSection={activeSection}
+          onSelect={setActiveSection}
+          sidebarRef={sidebarRef}
+        />
 
         <main className="flex-1 space-y-6">
           <div className="lg:hidden">
@@ -235,15 +320,32 @@ export default function Home() {
           />
 
           {activeSection === "clientes" && (
-            <ClientesScreen searchTerm={globalSearch} />
+            <div ref={clientesRef}>
+              <ClientesScreen searchTerm={globalSearch} />
+            </div>
           )}
           {activeSection === "propiedades" && (
-            <InmueblesScreen searchTerm={globalSearch} />
+            <div ref={propiedadesRef}>
+              <InmueblesScreen searchTerm={globalSearch} />
+            </div>
           )}
-           {activeSection === "inicio" && <InicioScreen />}
-          {activeSection === "simulador" && <SimuladorScreen />}
+          {activeSection === "inicio" && (
+            <div ref={inicioRef}>
+              <InicioScreen />
+            </div>
+          )}
+          {activeSection === "simulador" && (
+            <div ref={simuladorRef}>
+              <SimuladorScreen />
+            </div>
+          )}
         </main>
       </div>
+      <HelpAssistant
+        steps={tourSteps}
+        manualUrl="/manual-usuario.pdf"
+        onStepChange={handleTourStepChange}
+      />
     </div>
   );
 }
@@ -251,9 +353,11 @@ export default function Home() {
 function Sidebar({
   activeSection,
   onSelect,
+  sidebarRef,
 }: {
   activeSection: Section;
   onSelect: (key: Section) => void;
+  sidebarRef?: RefObject<HTMLDivElement>;
 }) {
   const { data: session } = useSession();
 
@@ -289,7 +393,10 @@ function Sidebar({
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <aside className="hidden w-64 flex-col justify-between rounded-3xl bg-[#0f1c2f] p-6 text-white shadow-2xl lg:flex">
+    <aside
+      ref={sidebarRef}
+      className="hidden w-64 flex-col justify-between rounded-3xl bg-[#0f1c2f] p-6 text-white shadow-2xl lg:flex"
+    >
       <div>
         <div className="mb-12">
           <p className="text-sm uppercase tracking-[0.3em] text-slate-400">
@@ -2632,9 +2739,10 @@ function SimuladorScreen() {
     XLSX.writeFile(wb, "SimulacionCredito.xlsx", { compression: true });
   }
 
-   const parseCurrency = (value: string | number) => {
+  const parseCurrency = (value: string | number) => {
+    if (value === null || value === undefined) return 0;
     const numeric = Number(String(value).replace(/,/g, ""));
-    return isNaN(numeric) ? 0 : numeric;
+    return Number.isFinite(numeric) ? numeric : 0;
   };
 
   const formatCurrency = (value: number | string) => {
@@ -2643,32 +2751,46 @@ function SimuladorScreen() {
     const stringValue = String(value);
     if (stringValue === "") return "";
 
-    const sanitized = stringValue.replace(/,/g, "");
-    const [integerPart, decimalPart] = sanitized.split(".");
-    const integerNumber = Number(integerPart);
+    const sanitized = stringValue.replace(/,/g, "").replace(/[^0-9.]/g, "");
+    const [integerPartRaw, ...decimalParts] = sanitized.split(".");
+    const integerPart = integerPartRaw === "" ? "0" : integerPartRaw;
+    const formattedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-    if (isNaN(integerNumber)) return "";
+    if (decimalParts.length === 0) return formattedInteger;
 
-    const formattedInteger = new Intl.NumberFormat("es-PE").format(
-      integerNumber
-    );
+    const decimals = decimalParts.join("");
 
-    if (decimalPart === undefined) return formattedInteger;
+    if (stringValue.endsWith(".") && decimals === "") {
+      return `${formattedInteger}.`;
+    }
 
-    return decimalPart.length > 0
-      ? `${formattedInteger}.${decimalPart}`
-      : `${formattedInteger}.`;
+    return `${formattedInteger}.${decimals}`;
   };
 
   const handleCurrencyChange = (
     key: "portes" | "costosIniciales" | "gastosAdministrativos"
   ) =>
     (event: ChangeEvent<HTMLInputElement>) => {
-      const raw = event.target.value.replace(/,/g, "");
-      const sanitized = raw.replace(/[^0-9.]/g, "");
-      const parts = sanitized.split(".");
-      const normalized =
-        parts.length > 2 ? `${parts[0]}.${parts.slice(1).join("")}` : sanitized;
+      const cleaned = event.target.value
+        .replace(/,/g, "")
+        .replace(/[^0-9.]/g, "");
+
+      if (cleaned === "") {
+        setForm((prev) => ({
+          ...prev,
+          [key]: "",
+        }));
+        return;
+      }
+
+      const [integerPartRaw, ...decimalParts] = cleaned.split(".");
+      const integerPart = integerPartRaw.replace(/^0+(?=\d)/, "") || "0";
+      const decimals = decimalParts.join("");
+      const hasDecimalPoint = cleaned.includes(".");
+
+      const normalized = hasDecimalPoint
+        ? `${integerPart}.${decimals}`
+        : integerPart;
 
       setForm((prev) => ({
         ...prev,
