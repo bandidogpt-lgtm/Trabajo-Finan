@@ -10,11 +10,17 @@ type TourStep = {
   targetRef?: RefObject<HTMLElement>;
 };
 
+type SectionTourCard = {
+  id: string;
+  label: string;
+  description: string;
+  startStepId: string;
+};
+
 type SectionTour = {
   id: string;
   label: string;
-  description?: string;
-  stepIds: string[];
+  cards: SectionTourCard[];
 };
 
 type HelpAssistantProps = {
@@ -43,8 +49,19 @@ export function HelpAssistant({
   const [isTourActive, setIsTourActive] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [spotlight, setSpotlight] = useState<SpotlightRect | null>(null);
+  const [tourScope, setTourScope] = useState<string | null>(null);
 
   const currentStep = steps[currentStepIndex];
+
+  const scopedSteps = useMemo(
+    () => (tourScope ? steps.filter((step) => step.id.startsWith(tourScope)) : steps),
+    [steps, tourScope],
+  );
+
+  const scopePosition = useMemo(() => {
+    const position = scopedSteps.findIndex((step) => step.id === currentStep?.id);
+    return { position, total: scopedSteps.length };
+  }, [currentStep?.id, scopedSteps]);
 
   const badgeForStep = useMemo(() => {
     if (!currentStep?.id) return "";
@@ -52,13 +69,17 @@ export function HelpAssistant({
     return section;
   }, [currentStep]);
 
-  const visibleSectionTours = useMemo(
-    () =>
-      (sectionTours ?? []).filter(
-        (section) => !activeSection || section.id === activeSection,
-      ),
-    [activeSection, sectionTours],
-  );
+  const visibleSectionTours = useMemo(() => {
+    const scoped = (sectionTours ?? []).filter(
+      (section) => !activeSection || section.id === activeSection,
+    );
+
+    if (!scoped.length && sectionTours?.length) {
+      return [sectionTours[0]];
+    }
+
+    return scoped;
+  }, [activeSection, sectionTours]);
 
   useEffect(() => {
     if (isTourActive && currentStep?.id && onStepChange) {
@@ -114,9 +135,14 @@ export function HelpAssistant({
   }, [currentStep, isTourActive]);
 
   function startTour(stepId?: string) {
-    const startIndex = stepId
-      ? steps.findIndex((step) => step.id === stepId)
-      : 0;
+    const startIndex = stepId ? steps.findIndex((step) => step.id === stepId) : 0;
+
+    if (stepId) {
+      const [scopePrefix] = stepId.split(":");
+      setTourScope(scopePrefix ?? null);
+    } else {
+      setTourScope(null);
+    }
 
     if (startIndex === -1) return;
 
@@ -128,16 +154,45 @@ export function HelpAssistant({
   function stopTour() {
     setIsTourActive(false);
     setSpotlight(null);
+    setTourScope(null);
   }
 
   function goToStep(direction: 1 | -1) {
     setCurrentStepIndex((prev) => {
-      const next = prev + direction;
-      if (next < 0) return prev;
-      if (next >= steps.length) return prev;
-      return next;
+      const prefix = tourScope;
+      let candidate = prev + direction;
+
+      while (candidate >= 0 && candidate < steps.length) {
+        if (!prefix || steps[candidate].id.startsWith(prefix)) {
+          return candidate;
+        }
+
+        candidate += direction;
+      }
+
+      return prev;
     });
   }
+
+  const hasNextInScope = useMemo(() => {
+    const prefix = tourScope;
+    for (let i = currentStepIndex + 1; i < steps.length; i += 1) {
+      if (!prefix || steps[i].id.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
+  }, [currentStepIndex, steps, tourScope]);
+
+  const hasPrevInScope = useMemo(() => {
+    const prefix = tourScope;
+    for (let i = currentStepIndex - 1; i >= 0; i -= 1) {
+      if (!prefix || steps[i].id.startsWith(prefix)) {
+        return true;
+      }
+    }
+    return false;
+  }, [currentStepIndex, steps, tourScope]);
 
   return (
     <>
@@ -223,28 +278,44 @@ export function HelpAssistant({
                     <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                       Recorridos de la vista actual
                     </p>
-                    <div className="space-y-2">
-                      {visibleSectionTours.map((section) => {
-                        const firstStep = steps.find((step) => section.stepIds.includes(step.id));
-                        if (!firstStep) return null;
+                    {visibleSectionTours.map((section) => (
+                      <div key={section.id} className="grid grid-cols-1 gap-3">
+                        {section.cards.slice(0, 4).map((card) => {
+                          const startingStep = steps.find((step) => step.id === card.startStepId);
+                          if (!startingStep) return null;
 
-                        return (
-                          <button
-                            key={section.id}
-                            type="button"
-                            onClick={() => startTour(firstStep.id)}
-                            className="flex flex-col items-start gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:border-[#0f1c2f] hover:shadow-lg"
-                          >
-                            <span className="inline-flex rounded-full bg-[#0f1c2f]/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#0f1c2f]">
-                              {section.label}
-                            </span>
-                            <span className="text-xs font-normal text-slate-600">
-                              {section.description ?? "Recorrido específico de esta sección"}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                          return (
+                            <button
+                              key={card.id}
+                              type="button"
+                              onClick={() => startTour(card.startStepId)}
+                              className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:-translate-y-[1px] hover:border-[#0f1c2f] hover:shadow-lg"
+                            >
+                              <div className="mt-1 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#0f1c2f]/10 text-[#0f1c2f]">
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  strokeWidth={1.5}
+                                  stroke="currentColor"
+                                  className="h-5 w-5"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M12 6v6h4.5m4.125-1.5a8.625 8.625 0 1 1-17.25 0 8.625 8.625 0 0 1 17.25 0Z"
+                                  />
+                                </svg>
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-slate-900">{card.label}</p>
+                                <p className="text-xs font-normal text-slate-600">{card.description}</p>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
                 ) : null}
               </div>
@@ -328,7 +399,9 @@ export function HelpAssistant({
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm">
               <div className="text-xs text-slate-500">
-                Paso {currentStepIndex + 1} de {steps.length}
+                Paso {scopePosition.position >= 0 ? scopePosition.position + 1 : currentStepIndex + 1} de
+                {" "}
+                {scopePosition.total || steps.length}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -342,11 +415,11 @@ export function HelpAssistant({
                   type="button"
                   onClick={() => goToStep(-1)}
                   className="rounded-xl bg-slate-100 px-3 py-2 font-semibold text-slate-700 hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={currentStepIndex === 0}
+                  disabled={!hasPrevInScope}
                 >
                   Anterior
                 </button>
-                {currentStepIndex < steps.length - 1 ? (
+                {hasNextInScope ? (
                   <button
                     type="button"
                     onClick={() => goToStep(1)}

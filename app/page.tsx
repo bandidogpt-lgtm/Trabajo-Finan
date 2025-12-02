@@ -225,49 +225,177 @@ export default function Home() {
     },
     {
       id: "inicio:indicadores",
-      title: "Inicio: indicadores y resumen",
+      title: "Revisar indicadores",
       description:
-        "Observa el tablero con los indicadores clave y el resumen del portafolio para tomar decisiones rápidas.",
+        "Explora los mosaicos principales para conocer el total de clientes, inmuebles y proyectos destacados.",
       bullets: [
-        "Los mosaicos muestran el total de clientes, inmuebles y proyectos sostenibles.",
-        "El resumen del portafolio explica cómo leer montos, TCEA y TIR para evaluar la salud financiera.",
-        "Las métricas se actualizan según los datos más recientes cargados en la plataforma.",
+        "Cada tarjeta resume un indicador clave y se actualiza con la última información registrada.",
+        "Pasa el cursor o toca cada tarjeta para ver detalles y mantener el contexto del dashboard.",
       ],
       targetRef: inicioRef,
     },
     {
-      id: "clientes:gestion",
-      title: "Clientes: registro y mantenimiento",
+      id: "inicio:metricas",
+      title: "Analizar métricas",
       description:
-        "Administra toda la información de clientes desde un solo lugar con acciones claras y seguras.",
+        "Observa el resumen financiero para interpretar VAN, TIR y TCEA de manera rápida y accionable.",
       bullets: [
-        "Registra un cliente nuevo completando el formulario y marcando los campos obligatorios.",
-        "Edita o elimina registros desde la tabla; confirma los cambios con los botones de acción.",
-        "Accede al detalle para validar datos y entender qué representa cada campo antes del envío.",
+        "Lee las métricas resaltadas para validar el rendimiento general del portafolio.",
+        "Usa la descripción de cada métrica para comprender qué variable de negocio representa.",
+      ],
+      targetRef: inicioRef,
+    },
+    {
+      id: "inicio:grafico",
+      title: "Interpretar gráficos",
+      description:
+        "Revisa los gráficos de tendencia y distribución para detectar comportamientos y oportunidades.",
+      bullets: [
+        "Relaciona los ejes y leyendas para comparar periodos y categorías.",
+        "Identifica picos o caídas para profundizar en el detalle del panel.",
+      ],
+      targetRef: inicioRef,
+    },
+    {
+      id: "inicio:navegacion",
+      title: "Navegación general del panel",
+      description:
+        "Aprende cómo moverte por el dashboard, abrir tarjetas y ubicar rápidamente cada indicador.",
+      bullets: [
+        "Usa el scroll interno para recorrer el tablero sin perder el encabezado.",
+        "Combina la navegación lateral y los accesos rápidos del panel principal.",
+      ],
+      targetRef: sidebarRef,
+    },
+    {
+      id: "clientes:registrar",
+      title: "Registrar cliente",
+      description:
+        "Completa el formulario de clientes con datos personales, contacto y condiciones obligatorias.",
+      bullets: [
+        "Valida campos obligatorios antes de guardar para evitar errores.",
+        "Confirma el alta desde los botones principales del formulario.",
       ],
       targetRef: clientesRef,
     },
     {
-      id: "propiedades:inventario",
-      title: "Propiedades: inventario y fichas",
+      id: "clientes:filtrar",
+      title: "Filtrar clientes",
       description:
-        "Carga, organiza y filtra los inmuebles disponibles para vincularlos con las simulaciones.",
+        "Utiliza los filtros superiores y la búsqueda para encontrar rápidamente a la persona correcta.",
       bullets: [
-        "Agrega un inmueble con su ubicación, metrajes, precios y tipo de propiedad.",
-        "Sube o revisa imágenes para mostrar referencias visuales al cliente.",
-        "Usa los filtros y acciones principales para buscar, editar o retirar propiedades del listado.",
+        "Combina filtros por nombre, documento o correo para refinar resultados.",
+        "Reinicia los filtros para volver al listado completo cuando lo necesites.",
+      ],
+      targetRef: clientesRef,
+    },
+    {
+      id: "clientes:detalle",
+      title: "Ver detalle del cliente",
+      description:
+        "Ingresa a la ficha de cada cliente para revisar su información completa antes de simular o editar.",
+      bullets: [
+        "Abre el detalle desde el botón de acción en la tabla.",
+        "Revisa los campos clave y el historial antes de continuar con otra gestión.",
+      ],
+      targetRef: clientesRef,
+    },
+    {
+      id: "clientes:editar",
+      title: "Editar o eliminar cliente",
+      description:
+        "Actualiza los datos o elimina registros con confirmación, manteniendo la base de clientes ordenada.",
+      bullets: [
+        "Selecciona editar para modificar campos y guardar cambios al instante.",
+        "Usa eliminar solo cuando estés seguro; el sistema solicitará confirmación.",
+      ],
+      targetRef: clientesRef,
+    },
+    {
+      id: "propiedades:registrar",
+      title: "Registrar propiedad",
+      description:
+        "Añade un inmueble con metraje, ubicación, precio y tipo para mantener tu inventario completo.",
+      bullets: [
+        "Completa los campos obligatorios antes de guardar.",
+        "Asigna el tipo correcto para facilitar futuros filtros.",
       ],
       targetRef: propiedadesRef,
     },
     {
-      id: "simulador:credito",
-      title: "Simulador de crédito",
+      id: "propiedades:editar",
+      title: "Editar información de propiedad",
       description:
-        "Configura el crédito, visualiza el cálculo completo y comparte los resultados con el cliente.",
+        "Actualiza precios, características o descripciones desde la ficha de cada inmueble.",
       bullets: [
-        "Selecciona el cliente y la propiedad, luego ingresa parámetros como tasa, plazos y capitalización.",
-        "Interpreta el cálculo generado, revisa el cronograma y monitorea las cuotas y seguros.",
-        "Exporta la simulación a Excel o descarga/envía el PDF del informe para compartirlo al instante.",
+        "Guarda los cambios para mantener consistencia con las simulaciones.",
+        "Verifica metrajes y monedas antes de confirmar.",
+      ],
+      targetRef: propiedadesRef,
+    },
+    {
+      id: "propiedades:imagenes",
+      title: "Subir o ver imágenes",
+      description:
+        "Gestiona la galería de cada propiedad para mostrar referencias visuales claras al cliente.",
+      bullets: [
+        "Carga imágenes en buena resolución y revisa las miniaturas.",
+        "Elimina o reemplaza imágenes que ya no correspondan al inmueble.",
+      ],
+      targetRef: propiedadesRef,
+    },
+    {
+      id: "propiedades:filtros",
+      title: "Aplicar filtros de búsqueda",
+      description:
+        "Filtra el inventario por ubicación, tipo, precio o sostenibilidad para ubicar propiedades rápido.",
+      bullets: [
+        "Combina filtros para reducir resultados y agilizar la selección.",
+        "Restablece los filtros para volver a ver todo el inventario.",
+      ],
+      targetRef: propiedadesRef,
+    },
+    {
+      id: "simulador:cliente",
+      title: "Seleccionar cliente",
+      description:
+        "Elige el cliente que participará en la simulación desde la búsqueda o lista de coincidencias.",
+      bullets: [
+        "Escribe nombre o DNI para encontrar al cliente.",
+        "Confirma la selección antes de pasar al inmueble.",
+      ],
+      targetRef: simuladorRef,
+    },
+    {
+      id: "simulador:propiedad",
+      title: "Seleccionar propiedad",
+      description:
+        "Escoge el inmueble que se asociará al crédito asegurando coherencia de moneda y precio.",
+      bullets: [
+        "Busca por nombre de proyecto o dirección.",
+        "Revisa valor y características antes de continuar.",
+      ],
+      targetRef: simuladorRef,
+    },
+    {
+      id: "simulador:parametros",
+      title: "Completar parámetros del crédito",
+      description:
+        "Ingresa tasa, capitalización, plazos, seguros y costos para calcular la cuota y el cronograma.",
+      bullets: [
+        "Verifica los campos numéricos con el formato de decimales y miles.",
+        "Ajusta periodo de gracia y capitalización según la propuesta.",
+      ],
+      targetRef: simuladorRef,
+    },
+    {
+      id: "simulador:cronograma",
+      title: "Generar cronograma y exportar PDF/Excel",
+      description:
+        "Revisa el cálculo, valida el cronograma y exporta los resultados en PDF o Excel para compartirlos.",
+      bullets: [
+        "Confirma que el resumen refleja el monto y la TCEA esperada.",
+        "Usa los botones de exportación para enviar el reporte al cliente.",
       ],
       targetRef: simuladorRef,
     },
@@ -277,30 +405,122 @@ export default function Home() {
     {
       id: "inicio",
       label: "Inicio",
-      description:
-        "Recorrido por las métricas, indicadores y el resumen del portafolio en el dashboard principal",
-      stepIds: ["inicio:indicadores"],
+      cards: [
+        {
+          id: "inicio-revisar-indicadores",
+          label: "Revisar indicadores",
+          description: "Observa los mosaicos principales y su actualización en tiempo real.",
+          startStepId: "inicio:indicadores",
+        },
+        {
+          id: "inicio-analizar-metricas",
+          label: "Analizar métricas",
+          description: "Interpreta VAN, TIR y TCEA desde el resumen financiero.",
+          startStepId: "inicio:metricas",
+        },
+        {
+          id: "inicio-interpretar-graficos",
+          label: "Interpretar gráficos",
+          description: "Lee tendencias y distribuciones para detectar oportunidades.",
+          startStepId: "inicio:grafico",
+        },
+        {
+          id: "inicio-navegacion-panel",
+          label: "Navegación general del panel",
+          description: "Aprende a desplazarte por el dashboard sin perder contexto.",
+          startStepId: "inicio:navegacion",
+        },
+      ],
     },
     {
       id: "clientes",
       label: "Clientes",
-      description:
-        "Guía para registrar, filtrar, ver detalle, editar o eliminar clientes desde la tabla",
-      stepIds: ["clientes:gestion"],
+      cards: [
+        {
+          id: "clientes-registrar",
+          label: "Registrar cliente",
+          description: "Completa el formulario y confirma el alta de un nuevo registro.",
+          startStepId: "clientes:registrar",
+        },
+        {
+          id: "clientes-filtrar",
+          label: "Filtrar clientes",
+          description: "Aplica búsquedas y filtros rápidos sobre la tabla.",
+          startStepId: "clientes:filtrar",
+        },
+        {
+          id: "clientes-detalle",
+          label: "Ver detalle del cliente",
+          description: "Abre la ficha para revisar datos antes de una simulación.",
+          startStepId: "clientes:detalle",
+        },
+        {
+          id: "clientes-editar",
+          label: "Editar o eliminar cliente",
+          description: "Actualiza información o elimina el registro con confirmación.",
+          startStepId: "clientes:editar",
+        },
+      ],
     },
     {
       id: "propiedades",
       label: "Propiedades",
-      description:
-        "Pasos para agregar inmuebles, gestionar imágenes, metrajes, precios y filtros del inventario",
-      stepIds: ["propiedades:inventario"],
+      cards: [
+        {
+          id: "propiedades-registrar",
+          label: "Registrar propiedad",
+          description: "Carga un inmueble con ubicación, metrajes y precios.",
+          startStepId: "propiedades:registrar",
+        },
+        {
+          id: "propiedades-editar",
+          label: "Editar información de propiedad",
+          description: "Ajusta datos clave desde la ficha del inmueble.",
+          startStepId: "propiedades:editar",
+        },
+        {
+          id: "propiedades-imagenes",
+          label: "Subir o ver imágenes",
+          description: "Gestiona la galería y reemplaza referencias visuales.",
+          startStepId: "propiedades:imagenes",
+        },
+        {
+          id: "propiedades-filtros",
+          label: "Aplicar filtros de búsqueda",
+          description: "Refina el inventario por ubicación, tipo o precio.",
+          startStepId: "propiedades:filtros",
+        },
+      ],
     },
     {
       id: "simulador",
       label: "Simulaciones",
-      description:
-        "Recorrido para seleccionar cliente y propiedad, ingresar tasas, revisar cronograma y exportar",
-      stepIds: ["simulador:credito"],
+      cards: [
+        {
+          id: "simulador-cliente",
+          label: "Seleccionar cliente",
+          description: "Elige al cliente correcto antes de configurar el crédito.",
+          startStepId: "simulador:cliente",
+        },
+        {
+          id: "simulador-propiedad",
+          label: "Seleccionar propiedad",
+          description: "Escoge el inmueble adecuado para la propuesta.",
+          startStepId: "simulador:propiedad",
+        },
+        {
+          id: "simulador-parametros",
+          label: "Completar parámetros del crédito",
+          description: "Ingresa tasas, plazos, seguros y costos asociados.",
+          startStepId: "simulador:parametros",
+        },
+        {
+          id: "simulador-cronograma",
+          label: "Generar cronograma y exportar PDF/Excel",
+          description: "Valida el cálculo y exporta el reporte en el formato que necesites.",
+          startStepId: "simulador:cronograma",
+        },
+      ],
     },
   ];
 
