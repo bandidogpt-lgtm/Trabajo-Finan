@@ -191,6 +191,113 @@ const navItems = [
   { key: "simulador" as const, label: "Simulador de Crédito" },
 ];
 
+const supportGuide: Record<Section, {
+  title: string;
+  intro: string;
+  steps: { badge: string; title: string; description: string }[];
+}> = {
+  inicio: {
+    title: "Inicio",
+    intro:
+      "Revisa los indicadores generales y las últimas simulaciones guardadas en la plataforma.",
+    steps: [
+      {
+        badge: "Panel",
+        title: "Panorama general",
+        description:
+          "Tarjetas con clientes activos, propiedades disponibles, valor del portafolio y simulaciones recientes.",
+      },
+      {
+        badge: "Actualizaciones",
+        title: "Indicadores en vivo",
+        description:
+          "Las etiquetas resaltan cuándo los datos se están actualizando o si hubo algún problema con la API.",
+      },
+      {
+        badge: "Filtros",
+        title: "Simulaciones recientes",
+        description:
+          "Usa el filtro de texto para buscar por tipo de tasa o periodo de gracia y consulta rápidamente los montos simulados.",
+      },
+    ],
+  },
+  clientes: {
+    title: "Clientes",
+    intro:
+      "Administra la base de clientes con búsquedas rápidas, formularios y acciones de detalle.",
+    steps: [
+      {
+        badge: "Búsqueda",
+        title: "Filtro global y local",
+        description:
+          "Combina el buscador superior con el filtro por nombres, DNI o teléfono para ubicar clientes al instante.",
+      },
+      {
+        badge: "Formulario",
+        title: "Creación y edición",
+        description:
+          "Completa los datos personales, contacto y condiciones del cliente; el botón Guardar cambia a Actualizar al editar.",
+      },
+      {
+        badge: "Detalle",
+        title: "Acciones rápidas",
+        description:
+          "Abre el detalle para revisar información completa, editar o eliminar registros sin salir de la vista principal.",
+      },
+    ],
+  },
+  propiedades: {
+    title: "Propiedades",
+    intro:
+      "Gestiona el inventario de proyectos, incluyendo fotos, áreas, precios y sostenibilidad.",
+    steps: [
+      {
+        badge: "Inventario",
+        title: "Actualiza el listado",
+        description:
+          "El botón Actualizar sincroniza la grilla con la API; cada fila permite ver detalle o eliminar la propiedad.",
+      },
+      {
+        badge: "Filtros",
+        title: "Búsqueda combinada",
+        description:
+          "Aplica el filtro rápido por nombre, ubicación o tipo y combínalo con la búsqueda global del encabezado.",
+      },
+      {
+        badge: "Formulario",
+        title: "Publica un proyecto",
+        description:
+          "Registra precio, metros cuadrados, descripción y URL de imagen; marca la casilla de sostenibilidad cuando aplique.",
+      },
+    ],
+  },
+  simulador: {
+    title: "Simulador",
+    intro:
+      "Calcula escenarios de crédito y guarda simulaciones listas para exportar.",
+    steps: [
+      {
+        badge: "Selección",
+        title: "Cliente e inmueble",
+        description:
+          "Busca un cliente y una propiedad desde los desplegables con autocompletado para precargar sus datos.",
+      },
+      {
+        badge: "Parámetros",
+        title: "Condiciones financieras",
+        description:
+          "Configura tipo y plazo de tasa, capitalización, periodos de gracia y costos iniciales antes de calcular.",
+      },
+      {
+        badge: "Resultados",
+        title: "Reportes y descargas",
+        description:
+          "Revisa el resumen, el cronograma con gráficos y descarga el PDF o Excel desde los botones de exportación.",
+      },
+    ],
+  },
+};
+
 const currencyFormatter = new Intl.NumberFormat("es-PE", {
   style: "currency",
   currency: "PEN",
@@ -206,7 +313,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-100">
-        <div className="flex min-h-screen gap-4 p-4 sm:p-6">
+      <div className="flex min-h-screen gap-4 p-4 sm:p-6">
         <Sidebar activeSection={activeSection} onSelect={setActiveSection} />
 
         <main className="flex-1 space-y-6">
@@ -244,6 +351,7 @@ export default function Home() {
           {activeSection === "simulador" && <SimuladorScreen />}
         </main>
       </div>
+      <SupportAssistant activeSection={activeSection} />
     </div>
   );
 }
@@ -425,6 +533,140 @@ function DashboardHeader({
         </div>
       </div>
     </header>
+  );
+}
+
+function SupportAssistant({ activeSection }: { activeSection: Section }) {
+  const [open, setOpen] = useState(false);
+  const [tourSection, setTourSection] = useState<Section>(activeSection);
+
+  useEffect(() => {
+    if (open) {
+      setTourSection(activeSection);
+    }
+  }, [activeSection, open]);
+
+  const currentGuide = supportGuide[tourSection];
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-2xl transition hover:bg-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-200"
+        aria-label="Abrir asistencia interactiva"
+      >
+        <span className="text-2xl font-bold">?</span>
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-40 flex items-end justify-end sm:items-stretch">
+          <div
+            className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+          />
+
+          <aside className="relative z-10 flex h-[85vh] w-full max-w-md flex-col gap-4 overflow-hidden rounded-t-3xl bg-white p-6 shadow-2xl sm:h-full sm:rounded-none sm:rounded-l-3xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Asistencia técnica
+                </p>
+                <h3 className="text-xl font-semibold text-slate-900">
+                  Recorrido guiado
+                </h3>
+                <p className="text-sm text-slate-600">
+                  Explora cada sección con globos explicativos y descarga el manual de usuario.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Cerrar panel de asistencia"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              {`Estás en ${supportGuide[activeSection].title}`}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {navItems.map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => setTourSection(item.key)}
+                  className={`rounded-2xl border px-3 py-2 text-xs font-semibold transition ${
+                    tourSection === item.key
+                      ? "border-brand-200 bg-brand-50 text-brand-700"
+                      : "border-slate-200 bg-slate-50 text-slate-500 hover:border-brand-100 hover:bg-brand-50"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-3 overflow-y-auto pr-1">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  {currentGuide.title}
+                </p>
+                <p className="mt-1 text-sm text-slate-700">{currentGuide.intro}</p>
+              </div>
+
+              {currentGuide.steps.map((step, index) => (
+                <div
+                  key={`${tourSection}-${index}`}
+                  className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                >
+                  <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+                    {step.badge}
+                  </span>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
+                    {step.title}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">{step.description}</p>
+
+                  <span className="pointer-events-none absolute -right-3 -top-3 h-12 w-12 rounded-full bg-brand-100/60" />
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-auto space-y-2 border-t border-slate-100 pt-3">
+              <a
+                href="/manual-usuario.pdf"
+                download
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4.5v11.25m0 0L8.25 12m3.75 3.75L15.75 12M4.5 19.5h15"
+                  />
+                </svg>
+                Descargar Manual de Usuario
+              </a>
+              <p className="text-xs text-slate-500">
+                Incluye capturas, pasos detallados y mejores prácticas para aprovechar el simulador.
+              </p>
+            </div>
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1531,15 +1773,19 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
                 {filteredInmuebles.map((inmueble) => (
                   <tr key={inmueble.id}>
                     <td className="px-6 py-4">
-                      {inmueble.imagen_referencial ? (
-                        // eslint-disable-next-line @next/next/no-img-element                       
-                       <button onClick={() => setModalImageUrl(inmueble.imagen_referencial || null)}>
-                          <img
-                            src={inmueble.imagen_referencial}
-                            alt={`Foto de ${inmueble.nombre_proyecto}`}
-                            className="h-16 w-24 rounded-2xl object-cover shadow-sm cursor-pointer hover:scale-105 transition-transform"
-                          />
-                        </button>
+                        {inmueble.imagen_referencial ? (
+                          <button
+                            onClick={() =>
+                              setModalImageUrl(inmueble.imagen_referencial || null)
+                            }
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={inmueble.imagen_referencial}
+                              alt={`Foto de ${inmueble.nombre_proyecto}`}
+                              className="h-16 w-24 rounded-2xl object-cover shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                            />
+                          </button>
                       ) : (
                         <div className="flex h-16 w-24 items-center justify-center rounded-2xl bg-slate-100 text-xs text-slate-400">
                           Sin imagen
@@ -1934,12 +2180,13 @@ function SimuladorScreen() {
       montoPrestamoCalculado: Number(monto.toFixed(2)),
     }));
   }, [
-    form.valorInmueble,
-    form.cuotaInicial,
-    form.montoBono,
-    form.costosIniciales,
-    //form.gastosAdministrativos,
-  ]);
+      form.valorInmueble,
+      form.cuotaInicial,
+      form.montoBono,
+      form.costosIniciales,
+      parseCurrency,
+      //form.gastosAdministrativos,
+    ]);
 
   useEffect(() => {
     if (vistaSimulador === "lista") {
@@ -2632,49 +2879,72 @@ function SimuladorScreen() {
     XLSX.writeFile(wb, "SimulacionCredito.xlsx", { compression: true });
   }
 
-   const parseCurrency = (value: string | number) => {
-    const numeric = Number(String(value).replace(/,/g, ""));
-    return isNaN(numeric) ? 0 : numeric;
-  };
+  const normalizeCurrencyInput = useCallback((value: string) => {
+    const normalized = value.replace(/\s/g, "").replace(/,/g, "");
+    const [integerPartRaw = "", decimalPartRaw = ""] = normalized.split(".");
+    const integerClean = integerPartRaw.replace(/\D/g, "");
+    const decimalClean = decimalPartRaw.replace(/\D/g, "");
 
-  const formatCurrency = (value: number | string) => {
-    if (value === null || value === undefined) return "";
+    if (normalized === ".") return ".";
+    if (!integerClean && !decimalClean) return "";
 
-    const stringValue = String(value);
-    if (stringValue === "") return "";
+    if (normalized.includes(".") && decimalClean === "") {
+      return `${integerClean || "0"}.`;
+    }
 
-    const sanitized = stringValue.replace(/,/g, "");
-    const [integerPart, decimalPart] = sanitized.split(".");
-    const integerNumber = Number(integerPart);
+    return decimalClean
+      ? `${integerClean || "0"}.${decimalClean}`
+      : integerClean;
+  }, []);
 
-    if (isNaN(integerNumber)) return "";
+  const parseCurrency = useCallback(
+    (value: string | number) => {
+      const normalizedValue = normalizeCurrencyInput(String(value ?? ""));
+      const numeric = Number(normalizedValue.replace(/,/g, ""));
+      return isNaN(numeric) ? 0 : numeric;
+    },
+    [normalizeCurrencyInput]
+  );
 
-    const formattedInteger = new Intl.NumberFormat("es-PE").format(
-      integerNumber
-    );
+  const formatCurrency = useCallback(
+    (value: number | string) => {
+      if (value === null || value === undefined) return "";
 
-    if (decimalPart === undefined) return formattedInteger;
+      const stringValue = normalizeCurrencyInput(String(value));
+      if (stringValue === "") return "";
 
-    return decimalPart.length > 0
-      ? `${formattedInteger}.${decimalPart}`
-      : `${formattedInteger}.`;
-  };
+      const sanitized = stringValue.replace(/,/g, "");
+      const [integerPart, decimalPartRaw = ""] = sanitized.split(".");
+      const integerNumber = Number(integerPart || 0);
 
-  const handleCurrencyChange = (
-    key: "portes" | "costosIniciales" | "gastosAdministrativos"
-  ) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const raw = event.target.value.replace(/,/g, "");
-      const sanitized = raw.replace(/[^0-9.]/g, "");
-      const parts = sanitized.split(".");
-      const normalized =
-        parts.length > 2 ? `${parts[0]}.${parts.slice(1).join("")}` : sanitized;
+      if (isNaN(integerNumber)) return "";
 
-      setForm((prev) => ({
-        ...prev,
-        [key]: normalized,
-      }));
-    };
+      const formattedInteger = new Intl.NumberFormat("es-PE").format(
+        integerNumber
+      );
+
+      const hasTrailingDot = sanitized.endsWith(".") && decimalPartRaw === "";
+      if (hasTrailingDot) return `${formattedInteger}.`;
+
+      return decimalPartRaw
+        ? `${formattedInteger}.${decimalPartRaw}`
+        : formattedInteger;
+    },
+    [normalizeCurrencyInput]
+  );
+
+  const handleCurrencyChange = useCallback(
+    (key: "portes" | "costosIniciales" | "gastosAdministrativos") =>
+      (event: ChangeEvent<HTMLInputElement>) => {
+        const normalized = normalizeCurrencyInput(event.target.value);
+
+        setForm((prev) => ({
+          ...prev,
+          [key]: normalized,
+        }));
+      },
+    [normalizeCurrencyInput]
+  );
 
   const simulacionesGuardadasFiltradas = useMemo(() => {
     const criterio = busquedaSimulacion.trim().toLowerCase();
