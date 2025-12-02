@@ -30,6 +30,7 @@ import {
 
 type Section = "inicio" | "clientes" | "propiedades" | "simulador";
 type FormMode = "create" | "edit";
+type AssistContextDetail = { section: Section; label?: string };
 
 type ClienteForm = {
   dni: string;
@@ -191,11 +192,144 @@ const navItems = [
   { key: "simulador" as const, label: "Simulador de Crédito" },
 ];
 
+const supportGuide: Record<Section, {
+  title: string;
+  intro: string;
+  steps: {
+    badge: string;
+    title: string;
+    description: string;
+    target?: string;
+  }[];
+}> = {
+  inicio: {
+    title: "Inicio",
+    intro:
+      "Revisa los indicadores generales y las últimas simulaciones guardadas en la plataforma.",
+    steps: [
+      {
+        badge: "Panel",
+        title: "Panorama general",
+        description:
+          "Tarjetas con clientes activos, propiedades disponibles, valor del portafolio y simulaciones recientes.",
+        target: '[data-assist-id="inicio-panorama"]',
+      },
+      {
+        badge: "Actualizaciones",
+        title: "Indicadores en vivo",
+        description:
+          "Las etiquetas resaltan cuándo los datos se están actualizando o si hubo algún problema con la API.",
+        target: '[data-assist-id="inicio-estado"]',
+      },
+      {
+        badge: "Filtros",
+        title: "Simulaciones recientes",
+        description:
+          "Usa el filtro de texto para buscar por tipo de tasa o periodo de gracia y consulta rápidamente los montos simulados.",
+        target: '[data-assist-id="inicio-simulaciones"]',
+      },
+    ],
+  },
+  clientes: {
+    title: "Clientes",
+    intro:
+      "Administra la base de clientes con búsquedas rápidas, formularios y acciones de detalle.",
+    steps: [
+      {
+        badge: "Búsqueda",
+        title: "Filtro global y local",
+        description:
+          "Combina el buscador superior con el filtro por nombres, DNI o teléfono para ubicar clientes al instante.",
+        target: '[data-assist-id="clientes-buscador"]',
+      },
+      {
+        badge: "Formulario",
+        title: "Creación y edición",
+        description:
+          "Completa los datos personales, contacto y condiciones del cliente; el botón Guardar cambia a Actualizar al editar.",
+        target: '[data-assist-id="clientes-formulario"]',
+      },
+      {
+        badge: "Detalle",
+        title: "Acciones rápidas",
+        description:
+          "Abre el detalle para revisar información completa, editar o eliminar registros sin salir de la vista principal.",
+        target: '[data-assist-id="clientes-detalle"]',
+      },
+    ],
+  },
+  propiedades: {
+    title: "Propiedades",
+    intro:
+      "Gestiona el inventario de proyectos, incluyendo fotos, áreas, precios y sostenibilidad.",
+    steps: [
+      {
+        badge: "Inventario",
+        title: "Actualiza el listado",
+        description:
+          "El botón Actualizar sincroniza la grilla con la API; cada fila permite ver detalle o eliminar la propiedad.",
+        target: '[data-assist-id="propiedades-listado"]',
+      },
+      {
+        badge: "Filtros",
+        title: "Búsqueda combinada",
+        description:
+          "Aplica el filtro rápido por nombre, ubicación o tipo y combínalo con la búsqueda global del encabezado.",
+        target: '[data-assist-id="propiedades-buscador"]',
+      },
+      {
+        badge: "Formulario",
+        title: "Publica un proyecto",
+        description:
+          "Registra precio, metros cuadrados, descripción y URL de imagen; marca la casilla de sostenibilidad cuando aplique.",
+        target: '[data-assist-id="propiedades-formulario"]',
+      },
+    ],
+  },
+  simulador: {
+    title: "Simulador",
+    intro:
+      "Calcula escenarios de crédito y guarda simulaciones listas para exportar.",
+    steps: [
+      {
+        badge: "Selección",
+        title: "Cliente e inmueble",
+        description:
+          "Busca un cliente y una propiedad desde los desplegables con autocompletado para precargar sus datos.",
+        target: '[data-assist-id="simulador-seleccion"]',
+      },
+      {
+        badge: "Parámetros",
+        title: "Condiciones financieras",
+        description:
+          "Configura tipo y plazo de tasa, capitalización, periodos de gracia y costos iniciales antes de calcular.",
+        target: '[data-assist-id="simulador-parametros"]',
+      },
+      {
+        badge: "Resultados",
+        title: "Reportes y descargas",
+        description:
+          "Revisa el resumen, el cronograma con gráficos y descarga el PDF o Excel desde los botones de exportación.",
+        target: '[data-assist-id="simulador-resultados"]',
+      },
+    ],
+  },
+};
+
 const currencyFormatter = new Intl.NumberFormat("es-PE", {
   style: "currency",
   currency: "PEN",
   minimumFractionDigits: 2,
 });
+
+function emitAssistContext(section: Section, label?: string) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent<AssistContextDetail>("assist:context", {
+      detail: { section, label },
+    })
+  );
+}
 
 const inputBaseClasses =
   "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 focus:border-brand-400 focus:outline-none focus:ring-0";
@@ -204,9 +338,13 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState<Section>("inicio");
   const [globalSearch, setGlobalSearch] = useState("");
 
+  useEffect(() => {
+    emitAssistContext(activeSection, supportGuide[activeSection].title);
+  }, [activeSection]);
+
   return (
     <div className="min-h-screen bg-slate-100">
-        <div className="flex min-h-screen gap-4 p-4 sm:p-6">
+      <div className="flex min-h-screen gap-4 p-4 sm:p-6">
         <Sidebar activeSection={activeSection} onSelect={setActiveSection} />
 
         <main className="flex-1 space-y-6">
@@ -244,6 +382,7 @@ export default function Home() {
           {activeSection === "simulador" && <SimuladorScreen />}
         </main>
       </div>
+      <SupportAssistant activeSection={activeSection} />
     </div>
   );
 }
@@ -428,6 +567,277 @@ function DashboardHeader({
   );
 }
 
+function SupportAssistant({ activeSection }: { activeSection: Section }) {
+  const [open, setOpen] = useState(false);
+  const [tourSection, setTourSection] = useState<Section>(activeSection);
+  const [focusedStepIndex, setFocusedStepIndex] = useState(0);
+  const [peekMode, setPeekMode] = useState(false);
+  const [contextLabel, setContextLabel] = useState<string | null>(null);
+  const [highlightBox, setHighlightBox] = useState<
+    | {
+        top: number;
+        left: number;
+        width: number;
+        height: number;
+        label: string;
+      }
+    | null
+  >(null);
+
+  useEffect(() => {
+    if (open) {
+      setTourSection(activeSection);
+      setFocusedStepIndex(0);
+      setPeekMode(false);
+      setContextLabel(supportGuide[activeSection].title);
+    }
+  }, [activeSection, open]);
+
+  useEffect(() => {
+    const handleAssistContext = (event: Event) => {
+      const detail = (event as CustomEvent<AssistContextDetail>).detail;
+      if (!detail) return;
+
+      setTourSection(detail.section);
+      setContextLabel(detail.label ?? supportGuide[detail.section].title);
+    };
+
+    window.addEventListener("assist:context", handleAssistContext);
+    return () => window.removeEventListener("assist:context", handleAssistContext);
+  }, []);
+
+  const currentGuide = supportGuide[tourSection];
+
+  useEffect(() => {
+    if (!open) setPeekMode(false);
+  }, [open]);
+
+  const updateHighlight = useCallback(() => {
+    if (!open) {
+      setHighlightBox(null);
+      return;
+    }
+
+    const step = currentGuide.steps[focusedStepIndex];
+    if (!step?.target) {
+      setHighlightBox(null);
+      return;
+    }
+
+    const element = document.querySelector(step.target) as HTMLElement | null;
+    if (!element) {
+      setHighlightBox(null);
+      return;
+    }
+
+    const rect = element.getBoundingClientRect();
+    setHighlightBox({
+      top: rect.top - 16,
+      left: rect.left - 16,
+      width: rect.width + 32,
+      height: rect.height + 32,
+      label: step.title,
+    });
+
+    element.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+  }, [currentGuide.steps, focusedStepIndex, open]);
+
+  useEffect(() => {
+    updateHighlight();
+    if (!open) return;
+
+    const handleWindowChange = () => updateHighlight();
+    window.addEventListener("resize", handleWindowChange);
+    window.addEventListener("scroll", handleWindowChange, true);
+    return () => {
+      window.removeEventListener("resize", handleWindowChange);
+      window.removeEventListener("scroll", handleWindowChange, true);
+    };
+  }, [updateHighlight, open, tourSection]);
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="fixed bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-brand-600 text-white shadow-2xl transition hover:bg-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-200"
+        aria-label="Abrir asistencia interactiva"
+      >
+        <span className="text-2xl font-bold">?</span>
+      </button>
+
+      {open && (
+        <div className="fixed inset-0 z-40 flex items-end justify-end sm:items-stretch">
+          <div
+            className={`absolute inset-0 bg-gradient-to-l from-slate-900/10 via-slate-900/5 to-transparent transition-opacity duration-300 sm:left-auto sm:right-0 sm:top-4 sm:bottom-4 sm:w-[460px] ${peekMode ? "opacity-40" : "opacity-80"}`}
+            onClick={() => setOpen(false)}
+            style={{
+              backdropFilter: peekMode ? "none" : "blur(0.5px)",
+              pointerEvents: peekMode ? "none" : "auto",
+            }}
+          />
+
+          <aside
+            className={`pointer-events-auto relative z-10 flex h-[85vh] w-full max-w-sm flex-col gap-4 overflow-hidden rounded-t-3xl bg-white p-6 shadow-2xl transition-transform duration-300 sm:h-[calc(100%-2rem)] sm:rounded-none sm:rounded-l-3xl sm:border-l sm:border-slate-100 ${peekMode ? "sm:translate-x-[35%] sm:opacity-95" : "sm:translate-x-0"}`}
+            style={{ marginRight: peekMode ? "0" : "1rem" }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  Asistencia técnica
+                </p>
+                <h3 className="text-xl font-semibold text-slate-900">
+                  Recorrido guiado
+                </h3>
+                <p className="text-sm text-slate-600">
+                  Explora cada sección con globos explicativos y descarga el manual de usuario.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPeekMode((prev) => !prev)}
+                  className="hidden rounded-full bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-100 sm:inline-flex"
+                >
+                  {peekMode ? "Mostrar panel" : "Ver enfoque"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Cerrar panel de asistencia"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600">
+              <span className="h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-brand-700 shadow-sm">
+                {supportGuide[activeSection].title}
+              </span>
+              {contextLabel && (
+                <span className="rounded-full bg-slate-900/5 px-2 py-1 text-[11px] font-semibold text-slate-700">
+                  {contextLabel}
+                </span>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {navItems.map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => {
+                    setTourSection(item.key);
+                    setFocusedStepIndex(0);
+                  }}
+                  className={`rounded-2xl border px-3 py-2 text-xs font-semibold transition ${
+                    tourSection === item.key
+                      ? "border-brand-200 bg-brand-50 text-brand-700"
+                      : "border-slate-200 bg-slate-50 text-slate-500 hover:border-brand-100 hover:bg-brand-50"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-3 overflow-y-auto pr-1">
+              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-xs uppercase tracking-wide text-slate-500">
+                  {currentGuide.title}
+                </p>
+                <p className="mt-1 text-sm text-slate-700">{currentGuide.intro}</p>
+              </div>
+
+              {currentGuide.steps.map((step, index) => (
+                <button
+                  key={`${tourSection}-${index}`}
+                  type="button"
+                  onClick={() => setFocusedStepIndex(index)}
+                  className={`relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition focus:outline-none focus:ring-2 focus:ring-brand-200 ${
+                    focusedStepIndex === index ? "ring-2 ring-brand-300" : ""
+                  }`}
+                >
+                  <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+                    {step.badge}
+                  </span>
+                  <p className="mt-2 text-sm font-semibold text-slate-900">
+                    {step.title}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">{step.description}</p>
+
+                  <span className="pointer-events-none absolute -right-3 -top-3 h-12 w-12 rounded-full bg-brand-100/60" />
+                  {step.target && (
+                    <span className="pointer-events-none absolute bottom-3 right-4 rounded-full bg-brand-50 px-2 py-1 text-[10px] font-semibold uppercase text-brand-700">
+                      Enfocar
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-auto space-y-2 border-t border-slate-100 pt-3">
+              <a
+                href="/manual-usuario.pdf"
+                download
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="1.5"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 4.5v11.25m0 0L8.25 12m3.75 3.75L15.75 12M4.5 19.5h15"
+                  />
+                </svg>
+                Descargar Manual de Usuario
+              </a>
+              <p className="text-xs text-slate-500">
+                Incluye capturas, pasos detallados y mejores prácticas para aprovechar el simulador.
+              </p>
+            </div>
+          </aside>
+        </div>
+      )}
+
+      {open && highlightBox && (
+        <div className="pointer-events-none fixed inset-0 z-50">
+          <div
+            className="absolute rounded-[22px] border border-brand-400/80 shadow-[0_0_0_4px_rgba(59,130,246,0.45)] drop-shadow-[0_18px_45px_rgba(15,23,42,0.24)]"
+            style={{
+              top: `${highlightBox.top}px`,
+              left: `${highlightBox.left}px`,
+              width: `${highlightBox.width}px`,
+              height: `${highlightBox.height}px`,
+              boxShadow:
+                "0 0 0 9999px rgba(15,23,42,0.18), 0 0 0 4px rgba(59,130,246,0.48)",
+              backdropFilter: "blur(0.2px)",
+            }}
+          />
+          <div
+            className="absolute -translate-y-4 translate-x-2 rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow-lg"
+            style={{
+              top: `${highlightBox.top}px`,
+              left: `${highlightBox.left + Math.max(Math.min(highlightBox.width - 120, 24), -8)}px`,
+            }}
+          >
+            {highlightBox.label}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function InicioScreen() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [inmuebles, setInmuebles] = useState<Inmueble[]>([]);
@@ -435,6 +845,10 @@ function InicioScreen() {
   const [filtroSimulacion, setFiltroSimulacion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    emitAssistContext("inicio", "Inicio · Resumen y actividad reciente");
+  }, []);
 
   const cargarResumen = useCallback(async () => {
     try {
@@ -520,7 +934,10 @@ function InicioScreen() {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[32px] bg-white p-8 shadow-xl">
+      <div
+        className="rounded-[32px] bg-white p-8 shadow-xl"
+        data-assist-id="inicio-panorama"
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-slate-900">
@@ -530,7 +947,10 @@ function InicioScreen() {
               Datos actualizados desde tus clientes, propiedades y simulaciones.
             </p>
           </div>
-          <div className="flex flex-col gap-2 text-sm text-slate-500 sm:items-end">
+          <div
+            className="flex flex-col gap-2 text-sm text-slate-500 sm:items-end"
+            data-assist-id="inicio-estado"
+          >
             <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-slate-700">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               Información en vivo
@@ -564,7 +984,10 @@ function InicioScreen() {
         </div>
       </div>
 
-      <div className="rounded-[32px] bg-white p-8 shadow-xl">
+      <div
+        className="rounded-[32px] bg-white p-8 shadow-xl"
+        data-assist-id="inicio-simulaciones"
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-xl font-semibold text-slate-900">
@@ -725,6 +1148,10 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
   const [simpleModalTitle, setSimpleModalTitle] = useState("");
   const [simpleModalDesc, setSimpleModalDesc] = useState("");
   const [simpleModalFlag, setSimpleModalFlag] = useState<0 | 1>(0);
+
+  useEffect(() => {
+    emitAssistContext("clientes", "Clientes · Gestión y formularios");
+  }, []);
 
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
@@ -944,7 +1371,10 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
   return (
     <section className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-[1.4fr_minmax(360px,0.8fr)]">
-        <article className="rounded-[32px] bg-white p-6 shadow-xl">
+        <article
+          className="rounded-[32px] bg-white p-6 shadow-xl"
+          data-assist-id="clientes-buscador"
+        >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold text-slate-900">
@@ -979,7 +1409,10 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
             </p>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-3xl border border-slate-100">
+          <div
+            className="mt-4 overflow-hidden rounded-3xl border border-slate-100"
+            data-assist-id="clientes-detalle"
+          >
             <table className="min-w-full divide-y divide-slate-100 text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
@@ -1096,7 +1529,10 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
             </div>
           )}
         </article>
-        <article className="rounded-[32px] bg-white p-6 shadow-xl">
+        <article
+          className="rounded-[32px] bg-white p-6 shadow-xl"
+          data-assist-id="clientes-formulario"
+        >
           <div className="mb-4">
             <p className="text-sm uppercase tracking-widest text-brand-600">
               Formulario cliente
@@ -1322,6 +1758,10 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
   const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    emitAssistContext("propiedades", "Propiedades · Inventario y publicación");
+  }, []);
+
+  useEffect(() => {
     cargarInmuebles();
   }, []);
 
@@ -1531,15 +1971,19 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
                 {filteredInmuebles.map((inmueble) => (
                   <tr key={inmueble.id}>
                     <td className="px-6 py-4">
-                      {inmueble.imagen_referencial ? (
-                        // eslint-disable-next-line @next/next/no-img-element                       
-                       <button onClick={() => setModalImageUrl(inmueble.imagen_referencial || null)}>
-                          <img
-                            src={inmueble.imagen_referencial}
-                            alt={`Foto de ${inmueble.nombre_proyecto}`}
-                            className="h-16 w-24 rounded-2xl object-cover shadow-sm cursor-pointer hover:scale-105 transition-transform"
-                          />
-                        </button>
+                        {inmueble.imagen_referencial ? (
+                          <button
+                            onClick={() =>
+                              setModalImageUrl(inmueble.imagen_referencial || null)
+                            }
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={inmueble.imagen_referencial}
+                              alt={`Foto de ${inmueble.nombre_proyecto}`}
+                              className="h-16 w-24 rounded-2xl object-cover shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                            />
+                          </button>
                       ) : (
                         <div className="flex h-16 w-24 items-center justify-center rounded-2xl bg-slate-100 text-xs text-slate-400">
                           Sin imagen
@@ -1896,6 +2340,17 @@ function SimuladorScreen() {
     []
   );
 
+  useEffect(() => {
+    const label =
+      vistaSimulador === "lista"
+        ? "Simulaciones · Historial"
+        : vistaSimulador === "detalle"
+          ? "Simulador · Resultados"
+          : "Simulador · Formulario";
+
+    emitAssistContext("simulador", label);
+  }, [vistaSimulador]);
+
   const cargarSimulacionesGuardadas = useCallback(async () => {
     try {
       setCargandoLista(true);
@@ -1934,12 +2389,13 @@ function SimuladorScreen() {
       montoPrestamoCalculado: Number(monto.toFixed(2)),
     }));
   }, [
-    form.valorInmueble,
-    form.cuotaInicial,
-    form.montoBono,
-    form.costosIniciales,
-    //form.gastosAdministrativos,
-  ]);
+      form.valorInmueble,
+      form.cuotaInicial,
+      form.montoBono,
+      form.costosIniciales,
+      parseCurrency,
+      //form.gastosAdministrativos,
+    ]);
 
   useEffect(() => {
     if (vistaSimulador === "lista") {
@@ -2632,49 +3088,72 @@ function SimuladorScreen() {
     XLSX.writeFile(wb, "SimulacionCredito.xlsx", { compression: true });
   }
 
-   const parseCurrency = (value: string | number) => {
-    const numeric = Number(String(value).replace(/,/g, ""));
-    return isNaN(numeric) ? 0 : numeric;
-  };
+  const normalizeCurrencyInput = useCallback((value: string) => {
+    const normalized = value.replace(/\s/g, "").replace(/,/g, "");
+    const [integerPartRaw = "", decimalPartRaw = ""] = normalized.split(".");
+    const integerClean = integerPartRaw.replace(/\D/g, "");
+    const decimalClean = decimalPartRaw.replace(/\D/g, "");
 
-  const formatCurrency = (value: number | string) => {
-    if (value === null || value === undefined) return "";
+    if (normalized === ".") return ".";
+    if (!integerClean && !decimalClean) return "";
 
-    const stringValue = String(value);
-    if (stringValue === "") return "";
+    if (normalized.includes(".") && decimalClean === "") {
+      return `${integerClean || "0"}.`;
+    }
 
-    const sanitized = stringValue.replace(/,/g, "");
-    const [integerPart, decimalPart] = sanitized.split(".");
-    const integerNumber = Number(integerPart);
+    return decimalClean
+      ? `${integerClean || "0"}.${decimalClean}`
+      : integerClean;
+  }, []);
 
-    if (isNaN(integerNumber)) return "";
+  const parseCurrency = useCallback(
+    (value: string | number) => {
+      const normalizedValue = normalizeCurrencyInput(String(value ?? ""));
+      const numeric = Number(normalizedValue.replace(/,/g, ""));
+      return isNaN(numeric) ? 0 : numeric;
+    },
+    [normalizeCurrencyInput]
+  );
 
-    const formattedInteger = new Intl.NumberFormat("es-PE").format(
-      integerNumber
-    );
+  const formatCurrency = useCallback(
+    (value: number | string) => {
+      if (value === null || value === undefined) return "";
 
-    if (decimalPart === undefined) return formattedInteger;
+      const stringValue = normalizeCurrencyInput(String(value));
+      if (stringValue === "") return "";
 
-    return decimalPart.length > 0
-      ? `${formattedInteger}.${decimalPart}`
-      : `${formattedInteger}.`;
-  };
+      const sanitized = stringValue.replace(/,/g, "");
+      const [integerPart, decimalPartRaw = ""] = sanitized.split(".");
+      const integerNumber = Number(integerPart || 0);
 
-  const handleCurrencyChange = (
-    key: "portes" | "costosIniciales" | "gastosAdministrativos"
-  ) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const raw = event.target.value.replace(/,/g, "");
-      const sanitized = raw.replace(/[^0-9.]/g, "");
-      const parts = sanitized.split(".");
-      const normalized =
-        parts.length > 2 ? `${parts[0]}.${parts.slice(1).join("")}` : sanitized;
+      if (isNaN(integerNumber)) return "";
 
-      setForm((prev) => ({
-        ...prev,
-        [key]: normalized,
-      }));
-    };
+      const formattedInteger = new Intl.NumberFormat("es-PE").format(
+        integerNumber
+      );
+
+      const hasTrailingDot = sanitized.endsWith(".") && decimalPartRaw === "";
+      if (hasTrailingDot) return `${formattedInteger}.`;
+
+      return decimalPartRaw
+        ? `${formattedInteger}.${decimalPartRaw}`
+        : formattedInteger;
+    },
+    [normalizeCurrencyInput]
+  );
+
+  const handleCurrencyChange = useCallback(
+    (key: "portes" | "costosIniciales" | "gastosAdministrativos") =>
+      (event: ChangeEvent<HTMLInputElement>) => {
+        const normalized = normalizeCurrencyInput(event.target.value);
+
+        setForm((prev) => ({
+          ...prev,
+          [key]: normalized,
+        }));
+      },
+    [normalizeCurrencyInput]
+  );
 
   const simulacionesGuardadasFiltradas = useMemo(() => {
     const criterio = busquedaSimulacion.trim().toLowerCase();
@@ -3179,13 +3658,20 @@ function SimuladorScreen() {
 
         {feedback && vistaSimulador !== "lista" as any&& (
           <div
-            className={`rounded-2xl px-4 py-3 text-sm ${
+            className={`flex items-start justify-between gap-3 rounded-2xl px-4 py-3 text-sm ${
               feedback.type === "error"
                 ? "bg-red-50 text-red-700 ring-1 ring-red-100"
                 : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
             }`}
           >
-            {feedback.message}
+            <span className="pt-0.5">{feedback.message}</span>
+            <button
+              type="button"
+              onClick={() => setFeedback(null)}
+              className="rounded-full px-2 py-1 text-xs font-semibold text-slate-500 transition hover:bg-white/60"
+            >
+              Cerrar
+            </button>
           </div>
         )}
 
