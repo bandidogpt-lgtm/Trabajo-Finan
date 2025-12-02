@@ -16,6 +16,16 @@ import { useSession, signOut } from "next-auth/react";
 import * as XLSX from "xlsx-js-style";
 import ModalSimple from "@/app/components/ModalSimple";
 import ImageModal from "@/app/components/ImageModal";
+import {
+  LineChart,
+  Line,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 type Section = "inicio" | "clientes" | "propiedades" | "simulador";
 type FormMode = "create" | "edit";
@@ -284,7 +294,7 @@ function Sidebar({
           <p className="text-sm uppercase tracking-[0.3em] text-slate-400">
             Inmobiliaria
           </p>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Mi Banqito</h1>
+          <h1 className="mt-2 text-2xl font-semibold text-white">Horizonte Azul</h1>
         </div>
         <nav className="flex flex-col gap-2">
           {navItems.map((item) => (
@@ -2644,6 +2654,13 @@ function SimuladorScreen() {
     let totalPortes = 0;
     let totalGastos = 0;
 
+    const graficoData = resultado.data.map((fila, i) => ({
+      mes: i + 1,
+      interes: Math.abs(Number(fila[0] ?? 0)),
+      amortizacion: Math.abs(Number(fila[1] ?? 0)),
+      saldo: Number(fila[fila.length - 1] ?? 0), 
+    }));
+
     resultado.data.forEach((fila) => {
       totalInteres += Number(fila[0] ?? 0);
       totalAmortizacion += Number(fila[1] ?? 0);
@@ -2653,7 +2670,11 @@ function SimuladorScreen() {
     });
 
     const totalPagado =
-      totalInteres + totalAmortizacion + totalSeguros + totalPortes + totalGastos;
+      totalInteres +
+      totalAmortizacion +
+      totalSeguros +
+      totalPortes +
+      totalGastos;
 
     return {
       totalInteres,
@@ -2662,8 +2683,10 @@ function SimuladorScreen() {
       totalPortes,
       totalGastos,
       totalPagado,
+      graficoData,  // ⭐ NUEVO
     };
   }, [resultado]);
+
   const contenidoResultados = resultado ? (
     <section className="space-y-6">
       <div className="rounded-[32px] bg-white p-6 shadow-xl">
@@ -2715,27 +2738,43 @@ function SimuladorScreen() {
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <ResumenCard title="TCEA" value={`${resultado.resumen.TCEA}`} />
+
           <ResumenCard
             title="VAN"
             value={currencyFormatter.format(resultado.resumen.VAN)}
           />
+
           <ResumenCard title="TIR" value={resultado.resumen.TIR} />
-          <ResumenCard
-            title="Saldo a financiar"
-            value={currencyFormatter.format(resultado.resumen.saldo_financiar)}
-          />
+
+          <div className="col-span-1 grid grid-cols-2 gap-4">
+            <ResumenCard
+              title="COK del Cliente"
+              value={`${simulacionSeleccionada?.cliente?.cok ?? 0}%`}
+            />
+
+            <ResumenCard
+              title="Monto del bono del Buen Pagador"
+              value={currencyFormatter.format(
+                simulacionSeleccionada?.monto_bono_bbp ?? 0
+              )}
+            />
+          </div>
+
           <ResumenCard
             title="Cuota base"
             value={currencyFormatter.format(resultado.resumen.cuota_base)}
           />
+
           <ResumenCard
             title="Plazo (meses)"
             value={`${resultado.resumen.plazo_meses}`}
           />
+
           <ResumenCard
             title="TEM"
             value={` ${(resultado.resumen.TEM * 100).toFixed(5)}%`}
           />
+
           <ResumenCard
             title="Monto préstamo"
             value={currencyFormatter.format(
@@ -2745,77 +2784,143 @@ function SimuladorScreen() {
         </div>
 
         {metricasResultado && (
-          <div className="mt-8 grid gap-6 lg:grid-cols-3">
-            <div className="rounded-3xl border border-slate-100 bg-slate-50 p-6">
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+
+            <div className="rounded-3xl border border-slate-100 bg-white shadow p-6 h-[420px] flex flex-col justify-between">
+
+            <div>
               <h3 className="text-lg font-semibold text-slate-900">
                 Solicitud vs interés
               </h3>
               <p className="text-sm text-slate-500">
                 Comparativo de capital amortizado frente a intereses y costos.
               </p>
-              <div className="mt-4 flex items-center gap-4">
-                {(() => {
-                  const totalPie =
-                    metricasResultado.totalAmortizacion +
-                    metricasResultado.totalInteres;
-                  const principalPct =
-                    totalPie === 0
-                      ? 0
-                      : (metricasResultado.totalAmortizacion / totalPie) * 100;
-                  const interesPct = 100 - principalPct;
-                  return (
-                    <div className="flex items-center gap-4">
-                      <div
-                        className="h-28 w-28 rounded-full border border-slate-200"
-                        style={{
-                          background: `conic-gradient(#0ea5e9 0% ${principalPct}%, #f97316 ${principalPct}% 100%)`,
-                        }}
-                        aria-label="Gráfico de capital vs intereses"
-                      />
-                      <div className="space-y-1 text-sm text-slate-600">
-                        <div className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-sky-500" />
-                          <span>
-                            Capital amortizado: {currencyFormatter.format(
-                              metricasResultado.totalAmortizacion
-                            )}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-orange-500" />
-                          <span>
-                            Intereses: {currencyFormatter.format(
-                              metricasResultado.totalInteres
-                            )}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-500">
-                          {principalPct.toFixed(1)}% capital / {interesPct.toFixed(1)}%
-                          interés
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
             </div>
-            <div className="lg:col-span-2 grid gap-3 sm:grid-cols-2">
-              <ResumenCard
-                title="Total pagado"
-                value={currencyFormatter.format(metricasResultado.totalPagado)}
-              />
-              <ResumenCard
-                title="Seguros acumulados"
-                value={currencyFormatter.format(metricasResultado.totalSeguros)}
-              />
-              <ResumenCard
-                title="Portes"
-                value={currencyFormatter.format(metricasResultado.totalPortes)}
-              />
-              <ResumenCard
-                title="Gastos administrativos"
-                value={currencyFormatter.format(metricasResultado.totalGastos)}
-              />
+
+            <div className="flex flex-col flex-grow items-center justify-center gap-6">
+              {(() => {
+                const totalPie =
+                  Math.abs(metricasResultado.totalAmortizacion) +
+                  Math.abs(metricasResultado.totalInteres);
+
+                const principalPct =
+                  totalPie === 0
+                    ? 0
+                    : (Math.abs(metricasResultado.totalAmortizacion) / totalPie) * 100;
+
+                const interesPct = 100 - principalPct;
+
+                return (
+                  <div className="flex items-center gap-8">
+
+                    {/* GRÁFICO CIRCULAR AGRANDADO */}
+                    <div
+                      className="h-48 w-48 rounded-full border border-slate-200"
+                      style={{
+                        background: `conic-gradient(#0ea5e9 0% ${principalPct}%, #f97316 ${principalPct}% 100%)`,
+                      }}
+                    />
+
+                    {/* LEYENDA */}
+                    <div className="space-y-2 text-sm text-slate-600">
+
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-sky-500" />
+                        <span>
+                          Capital amortizado:{" "}
+                          {currencyFormatter.format(
+                            Math.abs(metricasResultado.totalAmortizacion)
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="h-3 w-3 rounded-full bg-orange-500" />
+                        <span>
+                          Intereses:{" "}
+                          {currencyFormatter.format(
+                            Math.abs(metricasResultado.totalInteres)
+                          )}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-500">
+                        {principalPct.toFixed(1)}% capital / {interesPct.toFixed(1)}% interés
+                      </p>
+                    </div>
+
+                  </div>
+                );
+              })()}
+            </div>
+
+          </div>
+
+
+            <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow h-[420px] flex flex-col justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                  Evolución del Crédito
+                </h3>
+                <p className="text-sm text-slate-500 mb-4">
+                  Comportamiento mensual de amortización, intereses y saldo.
+                </p>
+              </div>
+
+              <div className="w-full flex-grow flex items-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={metricasResultado.graficoData}>
+                    <CartesianGrid stroke="#eee" strokeDasharray="5 5" />
+                    <XAxis
+                      dataKey="mes"
+                      label={{
+                        value: "Mes",
+                        position: "bottom",
+                      }}
+                    />
+                    <YAxis yAxisId="left" 
+                    tickFormatter={(value) => currencyFormatter.format(Number(value))}
+                    style={{ fontSize: 10, fill: "#64748b" }}/>
+                    <YAxis yAxisId="right" 
+                    orientation="right" 
+                    tickFormatter={(value) => currencyFormatter.format(Number(value))}
+                    style={{ fontSize: 10, fill: "#64748b" }}/>
+                    <Tooltip
+                      formatter={(value: number) =>
+                        currencyFormatter.format(Number(value))
+                      }
+                    />
+                    <Legend verticalAlign="top" height={36} />
+
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="interes"
+                      stroke="#ef4444"
+                      strokeWidth={2}
+                      name="Interés"
+                    />
+
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="amortizacion"
+                      stroke="#0ea5e9"
+                      strokeWidth={2}
+                      name="Amortización"
+                    />
+
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="saldo"
+                      stroke="#6366f1"
+                      strokeWidth={2}
+                      name="Saldo"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}
@@ -2889,9 +2994,12 @@ function SimuladorScreen() {
           <button
             type="button"
             onClick={() => {
-              setVistaSimulador("form");
-              setResultado(null);
-              setFeedback(null);
+              setForm(initialSimulacionForm);     // limpia todos los campos del formulario
+              setSimulacionId(null);              // limpia el ID de simulación
+              setSimulacionSeleccionada(null);    // limpia la simulación cargada
+              setResultado(null);                 // limpia resultados
+              setFeedback(null);                  // limpia mensajes
+              setVistaSimulador("form");          // vuelve al formulario limpio
             }}
             className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600"
           >
