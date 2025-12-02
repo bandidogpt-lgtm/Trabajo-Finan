@@ -1,11 +1,8 @@
 {
-<<<<<<< HEAD
-  "/auth/login/page": "app/auth/login/page.js",
-=======
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/api/clientes/[id]/route": "app/api/clientes/[id]/route.js",
   "/api/clientes/route": "app/api/clientes/route.js",
+  "/page": "app/page.js",
   "/api/inmuebles/route": "app/api/inmuebles/route.js",
->>>>>>> 3481ef8 (feature (frontend): Fix summary charts)
-  "/page": "app/page.js"
+  "/api/clientes/[id]/route": "app/api/clientes/[id]/route.js",
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/simulaciones/route": "app/api/simulaciones/route.js"
 }

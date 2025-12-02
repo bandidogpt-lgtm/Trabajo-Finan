@@ -3130,7 +3130,7 @@ function SimuladorScreen() {
           </div>
         </div>
 
-        {feedback && vistaSimulador !== "lista" && (
+        {feedback && vistaSimulador !== "lista" as any&& (
           <div
             className={`rounded-2xl px-4 py-3 text-sm ${
               feedback.type === "error"

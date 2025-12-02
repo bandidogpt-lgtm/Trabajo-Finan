@@ -98,7 +98,9 @@ function LoginPage() {
           />
 
           {errors.email && (
-            <p className="text-red-500 text-xs mb-2">{errors.email.message}</p>
+            <p className="text-red-500 text-xs mb-2">
+            {String(errors.email?.message || "")}
+          </p>
           )}
 
           <label className="text-gray-700 text-sm mb-1 block">Contraseña:</label>
@@ -110,11 +112,12 @@ function LoginPage() {
             className="w-full p-3 border border-gray-300 rounded-lg mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
 
-          {errors.password && (
+          {errors.password?.message && (
             <p className="text-red-500 text-xs mb-2">
-              {errors.password.message}
+              {String(errors.password.message)}
             </p>
           )}
+
 
           {/* BOTÓN CON LOADING */}
           <button
