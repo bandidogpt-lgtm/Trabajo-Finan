@@ -53,6 +53,8 @@ export function HelpAssistant({
 
   const currentStep = steps[currentStepIndex];
 
+  const isFullTour = !tourScope;
+
   const scopedSteps = useMemo(
     () => (tourScope ? steps.filter((step) => step.id.startsWith(tourScope)) : steps),
     [steps, tourScope],
@@ -148,7 +150,7 @@ export function HelpAssistant({
 
     setIsTourActive(true);
     setCurrentStepIndex(startIndex);
-    setIsOpen(true);
+    setIsOpen(stepId ? true : false);
   }
 
   function stopTour() {
@@ -366,7 +368,9 @@ export function HelpAssistant({
               left: spotlight.left - 12,
               width: spotlight.width + 24,
               height: spotlight.height + 24,
-              boxShadow: "0 0 0 9999px rgba(15, 28, 47, 0.65)",
+              boxShadow: isFullTour
+                ? "0 0 0 9999px rgba(15, 28, 47, 0.65)"
+                : "0 0 0 14px rgba(15, 28, 47, 0.18)",
             }}
           />
 

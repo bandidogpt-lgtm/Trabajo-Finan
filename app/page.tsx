@@ -206,10 +206,25 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState<Section>("inicio");
   const [globalSearch, setGlobalSearch] = useState("");
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const dashboardCardsRef = useRef<HTMLDivElement>(null);
+  const dashboardTableRef = useRef<HTMLDivElement>(null);
   const inicioRef = useRef<HTMLDivElement>(null);
   const clientesRef = useRef<HTMLDivElement>(null);
   const propiedadesRef = useRef<HTMLDivElement>(null);
   const simuladorRef = useRef<HTMLDivElement>(null);
+  const clientesFilterRef = useRef<HTMLInputElement>(null);
+  const clientesDetailRef = useRef<HTMLButtonElement>(null);
+  const clientesActionsRef = useRef<HTMLDivElement>(null);
+  const clientesSubmitRef = useRef<HTMLButtonElement>(null);
+  const propiedadesSubmitRef = useRef<HTMLButtonElement>(null);
+  const propiedadesAreaRef = useRef<HTMLInputElement>(null);
+  const propiedadesImagenRef = useRef<HTMLInputElement>(null);
+  const propiedadesFiltroRef = useRef<HTMLInputElement>(null);
+  const simuladorClienteRef = useRef<HTMLInputElement>(null);
+  const simuladorPropiedadRef = useRef<HTMLInputElement>(null);
+  const simuladorParametrosRef = useRef<HTMLDivElement>(null);
+  const simuladorCronogramaRef = useRef<HTMLButtonElement>(null);
 
   const tourSteps: TourStep[] = [
     {
@@ -232,7 +247,7 @@ export default function Home() {
         "Cada tarjeta resume un indicador clave y se actualiza con la última información registrada.",
         "Pasa el cursor o toca cada tarjeta para ver detalles y mantener el contexto del dashboard.",
       ],
-      targetRef: inicioRef,
+      targetRef: dashboardCardsRef,
     },
     {
       id: "inicio:metricas",
@@ -243,7 +258,7 @@ export default function Home() {
         "Lee las métricas resaltadas para validar el rendimiento general del portafolio.",
         "Usa la descripción de cada métrica para comprender qué variable de negocio representa.",
       ],
-      targetRef: inicioRef,
+      targetRef: dashboardTableRef,
     },
     {
       id: "inicio:grafico",
@@ -254,7 +269,7 @@ export default function Home() {
         "Relaciona los ejes y leyendas para comparar periodos y categorías.",
         "Identifica picos o caídas para profundizar en el detalle del panel.",
       ],
-      targetRef: inicioRef,
+      targetRef: dashboardTableRef,
     },
     {
       id: "inicio:navegacion",
@@ -276,7 +291,7 @@ export default function Home() {
         "Valida campos obligatorios antes de guardar para evitar errores.",
         "Confirma el alta desde los botones principales del formulario.",
       ],
-      targetRef: clientesRef,
+      targetRef: clientesSubmitRef,
     },
     {
       id: "clientes:filtrar",
@@ -287,7 +302,7 @@ export default function Home() {
         "Combina filtros por nombre, documento o correo para refinar resultados.",
         "Reinicia los filtros para volver al listado completo cuando lo necesites.",
       ],
-      targetRef: clientesRef,
+      targetRef: clientesFilterRef,
     },
     {
       id: "clientes:detalle",
@@ -298,7 +313,7 @@ export default function Home() {
         "Abre el detalle desde el botón de acción en la tabla.",
         "Revisa los campos clave y el historial antes de continuar con otra gestión.",
       ],
-      targetRef: clientesRef,
+      targetRef: clientesDetailRef,
     },
     {
       id: "clientes:editar",
@@ -309,7 +324,7 @@ export default function Home() {
         "Selecciona editar para modificar campos y guardar cambios al instante.",
         "Usa eliminar solo cuando estés seguro; el sistema solicitará confirmación.",
       ],
-      targetRef: clientesRef,
+      targetRef: clientesActionsRef,
     },
     {
       id: "propiedades:registrar",
@@ -320,7 +335,7 @@ export default function Home() {
         "Completa los campos obligatorios antes de guardar.",
         "Asigna el tipo correcto para facilitar futuros filtros.",
       ],
-      targetRef: propiedadesRef,
+      targetRef: propiedadesSubmitRef,
     },
     {
       id: "propiedades:editar",
@@ -331,7 +346,7 @@ export default function Home() {
         "Guarda los cambios para mantener consistencia con las simulaciones.",
         "Verifica metrajes y monedas antes de confirmar.",
       ],
-      targetRef: propiedadesRef,
+      targetRef: propiedadesAreaRef,
     },
     {
       id: "propiedades:imagenes",
@@ -342,7 +357,7 @@ export default function Home() {
         "Carga imágenes en buena resolución y revisa las miniaturas.",
         "Elimina o reemplaza imágenes que ya no correspondan al inmueble.",
       ],
-      targetRef: propiedadesRef,
+      targetRef: propiedadesImagenRef,
     },
     {
       id: "propiedades:filtros",
@@ -353,7 +368,7 @@ export default function Home() {
         "Combina filtros para reducir resultados y agilizar la selección.",
         "Restablece los filtros para volver a ver todo el inventario.",
       ],
-      targetRef: propiedadesRef,
+      targetRef: propiedadesFiltroRef,
     },
     {
       id: "simulador:cliente",
@@ -364,7 +379,7 @@ export default function Home() {
         "Escribe nombre o DNI para encontrar al cliente.",
         "Confirma la selección antes de pasar al inmueble.",
       ],
-      targetRef: simuladorRef,
+      targetRef: simuladorClienteRef,
     },
     {
       id: "simulador:propiedad",
@@ -375,7 +390,7 @@ export default function Home() {
         "Busca por nombre de proyecto o dirección.",
         "Revisa valor y características antes de continuar.",
       ],
-      targetRef: simuladorRef,
+      targetRef: simuladorPropiedadRef,
     },
     {
       id: "simulador:parametros",
@@ -386,7 +401,7 @@ export default function Home() {
         "Verifica los campos numéricos con el formato de decimales y miles.",
         "Ajusta periodo de gracia y capitalización según la propuesta.",
       ],
-      targetRef: simuladorRef,
+      targetRef: simuladorParametrosRef,
     },
     {
       id: "simulador:cronograma",
@@ -397,7 +412,7 @@ export default function Home() {
         "Confirma que el resumen refleja el monto y la TCEA esperada.",
         "Usa los botones de exportación para enviar el reporte al cliente.",
       ],
-      targetRef: simuladorRef,
+      targetRef: simuladorCronogramaRef,
     },
   ];
 
@@ -568,26 +583,47 @@ export default function Home() {
             searchTerm={globalSearch}
             onSearchChange={setGlobalSearch}
             activeSection={activeSection}
+            searchInputRef={searchInputRef}
           />
 
           {activeSection === "clientes" && (
             <div ref={clientesRef}>
-              <ClientesScreen searchTerm={globalSearch} />
+              <ClientesScreen
+                searchTerm={globalSearch}
+                filterRef={clientesFilterRef}
+                detailRef={clientesDetailRef}
+                actionsRef={clientesActionsRef}
+                submitRef={clientesSubmitRef}
+              />
             </div>
           )}
           {activeSection === "propiedades" && (
             <div ref={propiedadesRef}>
-              <InmueblesScreen searchTerm={globalSearch} />
+              <InmueblesScreen
+                searchTerm={globalSearch}
+                submitRef={propiedadesSubmitRef}
+                areaRef={propiedadesAreaRef}
+                imagenRef={propiedadesImagenRef}
+                filtrosRef={propiedadesFiltroRef}
+              />
             </div>
           )}
           {activeSection === "inicio" && (
             <div ref={inicioRef}>
-              <InicioScreen />
+              <InicioScreen
+                cardsRef={dashboardCardsRef}
+                tableRef={dashboardTableRef}
+              />
             </div>
           )}
           {activeSection === "simulador" && (
             <div ref={simuladorRef}>
-              <SimuladorScreen />
+              <SimuladorScreen
+                clienteRef={simuladorClienteRef}
+                propiedadRef={simuladorPropiedadRef}
+                parametrosRef={simuladorParametrosRef}
+                cronogramaRef={simuladorCronogramaRef}
+              />
             </div>
           )}
         </main>
@@ -719,10 +755,12 @@ function DashboardHeader({
   searchTerm,
   onSearchChange,
   activeSection,
+  searchInputRef,
 }: {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   activeSection: Section;
+  searchInputRef?: RefObject<HTMLInputElement>;
 }) {
   const placeholder = useMemo(() => {
     switch (activeSection) {
@@ -757,6 +795,7 @@ function DashboardHeader({
           value={searchTerm}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={placeholder}
+          ref={searchInputRef}
           className="w-full border-none bg-transparent text-base text-slate-700 outline-none"
         />
       </div>
@@ -788,7 +827,13 @@ function DashboardHeader({
   );
 }
 
-function InicioScreen() {
+function InicioScreen({
+  cardsRef,
+  tableRef,
+}: {
+  cardsRef?: RefObject<HTMLDivElement>;
+  tableRef?: RefObject<HTMLDivElement>;
+}) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [inmuebles, setInmuebles] = useState<Inmueble[]>([]);
   const [simulaciones, setSimulaciones] = useState<SimulacionResultado[]>([]);
@@ -900,7 +945,10 @@ function InicioScreen() {
           </div>
         </div>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div
+          ref={cardsRef}
+          className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+        >
           <IndicatorCard
             title="Clientes activos"
             value={clientes.length.toLocaleString("es-PE")}
@@ -924,7 +972,7 @@ function InicioScreen() {
         </div>
       </div>
 
-      <div className="rounded-[32px] bg-white p-8 shadow-xl">
+      <div ref={tableRef} className="rounded-[32px] bg-white p-8 shadow-xl">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-xl font-semibold text-slate-900">
@@ -1072,7 +1120,19 @@ function IndicatorCard({
   );
 }
 
-function ClientesScreen({ searchTerm }: { searchTerm: string }) {
+function ClientesScreen({
+  searchTerm,
+  filterRef,
+  detailRef,
+  actionsRef,
+  submitRef,
+}: {
+  searchTerm: string;
+  filterRef?: RefObject<HTMLInputElement>;
+  detailRef?: RefObject<HTMLButtonElement>;
+  actionsRef?: RefObject<HTMLDivElement>;
+  submitRef?: RefObject<HTMLButtonElement>;
+}) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [detalle, setDetalle] = useState<Cliente | null>(null);
   const [formValues, setFormValues] = useState<ClienteForm>(initialClienteForm);
@@ -1379,7 +1439,10 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
                       {cliente.telefono}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                      <div
+                        ref={index === 0 ? actionsRef : undefined}
+                        className="flex flex-wrap gap-2 text-xs font-semibold"
+                      >
                         <button
                           onClick={() => verCliente(cliente.id)}
                           className="rounded-full bg-emerald-100 px-4 py-1 text-emerald-700"
@@ -1635,6 +1698,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
               <button
                 type="submit"
                 disabled={submitting}
+                ref={submitRef}
                 className="rounded-2xl border border-slate-200 px-6 py-2 font-semibold text-slate-500"
               >
                 {submitting
@@ -1665,7 +1729,19 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
   );
 }
 
-function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
+function InmueblesScreen({
+  searchTerm,
+  submitRef,
+  areaRef,
+  imagenRef,
+  filtrosRef,
+}: {
+  searchTerm: string;
+  submitRef?: RefObject<HTMLButtonElement>;
+  areaRef?: RefObject<HTMLInputElement>;
+  imagenRef?: RefObject<HTMLInputElement>;
+  filtrosRef?: RefObject<HTMLInputElement>;
+}) {
   const [inmuebles, setInmuebles] = useState<Inmueble[]>([]);
   const [detalle, setDetalle] = useState<Inmueble | null>(null);
   const [formValues, setFormValues] =
@@ -1854,6 +1930,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
               <input
                 value={localSearch}
                 onChange={(event) => setLocalSearch(event.target.value)}
+                ref={filtrosRef}
                 className="w-full border-none bg-transparent text-sm text-slate-700 outline-none"
                 placeholder="Ej. Miraflores, Casa, Proyecto"
               />
@@ -2072,6 +2149,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
                   className={inputBaseClasses}
                   type="number"
                   min={10}
+                  ref={areaRef}
                   value={formValues.area_m2}
                   onChange={(e) =>
                     setFormValues({
@@ -2117,6 +2195,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
                 <input
                   className={inputBaseClasses}
                   type="text"
+                  ref={imagenRef}
                   value={formValues.imagen_referencial}
                   onChange={(e) =>
                     setFormValues({
@@ -2159,6 +2238,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
               <button
                 type="submit"
                 disabled={submitting}
+                ref={submitRef}
                 className="rounded-2xl border border-slate-200 px-6 py-2 font-semibold text-slate-500"
               >
                 {submitting
@@ -2226,7 +2306,17 @@ const initialSimulacionForm: SimulacionForm = {
   gastosAdministrativos: "0",
 };
 
-function SimuladorScreen() {
+function SimuladorScreen({
+  clienteRef,
+  propiedadRef,
+  parametrosRef,
+  cronogramaRef,
+}: {
+  clienteRef?: RefObject<HTMLInputElement>;
+  propiedadRef?: RefObject<HTMLInputElement>;
+  parametrosRef?: RefObject<HTMLElement>;
+  cronogramaRef?: RefObject<HTMLButtonElement>;
+}) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [inmuebles, setInmuebles] = useState<Inmueble[]>([]);
   const [form, setForm] = useState<SimulacionForm>(initialSimulacionForm);
@@ -3566,6 +3656,7 @@ function SimuladorScreen() {
 
         {mostrandoFormulario && (
           <form
+            ref={parametrosRef as RefObject<HTMLFormElement>}
             className="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
             onSubmit={manejarCalculo}
           >
@@ -3575,6 +3666,7 @@ function SimuladorScreen() {
                   value={form.clienteBusqueda}
                   onFocus={() => setClienteDropdownOpen(true)}
                   onBlur={() => cerrarDropdownConRetardo(setClienteDropdownOpen)}
+                  ref={clienteRef}
                   onChange={(e) => {
                     const value = e.target.value;
 
@@ -3657,6 +3749,7 @@ function SimuladorScreen() {
                   value={form.inmuebleBusqueda}
                   onFocus={() => setInmuebleDropdownOpen(true)}
                   onBlur={() => cerrarDropdownConRetardo(setInmuebleDropdownOpen)}
+                  ref={propiedadRef}
                   onChange={(e) => {
                     const value = e.target.value;
 
@@ -3975,6 +4068,7 @@ function SimuladorScreen() {
               <button
                 type="submit"
                 disabled={loading}
+                ref={cronogramaRef}
                 className="rounded-2xl border border-slate-200 px-6 py-2 font-semibold text-slate-500"
               >
                 {loading
