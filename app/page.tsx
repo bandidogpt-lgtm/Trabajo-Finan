@@ -194,7 +194,12 @@ const navItems = [
 const supportGuide: Record<Section, {
   title: string;
   intro: string;
-  steps: { badge: string; title: string; description: string }[];
+  steps: {
+    badge: string;
+    title: string;
+    description: string;
+    target?: string;
+  }[];
 }> = {
   inicio: {
     title: "Inicio",
@@ -206,18 +211,21 @@ const supportGuide: Record<Section, {
         title: "Panorama general",
         description:
           "Tarjetas con clientes activos, propiedades disponibles, valor del portafolio y simulaciones recientes.",
+        target: '[data-assist-id="inicio-panorama"]',
       },
       {
         badge: "Actualizaciones",
         title: "Indicadores en vivo",
         description:
           "Las etiquetas resaltan cuándo los datos se están actualizando o si hubo algún problema con la API.",
+        target: '[data-assist-id="inicio-estado"]',
       },
       {
         badge: "Filtros",
         title: "Simulaciones recientes",
         description:
           "Usa el filtro de texto para buscar por tipo de tasa o periodo de gracia y consulta rápidamente los montos simulados.",
+        target: '[data-assist-id="inicio-simulaciones"]',
       },
     ],
   },
@@ -231,18 +239,21 @@ const supportGuide: Record<Section, {
         title: "Filtro global y local",
         description:
           "Combina el buscador superior con el filtro por nombres, DNI o teléfono para ubicar clientes al instante.",
+        target: '[data-assist-id="clientes-buscador"]',
       },
       {
         badge: "Formulario",
         title: "Creación y edición",
         description:
           "Completa los datos personales, contacto y condiciones del cliente; el botón Guardar cambia a Actualizar al editar.",
+        target: '[data-assist-id="clientes-formulario"]',
       },
       {
         badge: "Detalle",
         title: "Acciones rápidas",
         description:
           "Abre el detalle para revisar información completa, editar o eliminar registros sin salir de la vista principal.",
+        target: '[data-assist-id="clientes-detalle"]',
       },
     ],
   },
@@ -256,18 +267,21 @@ const supportGuide: Record<Section, {
         title: "Actualiza el listado",
         description:
           "El botón Actualizar sincroniza la grilla con la API; cada fila permite ver detalle o eliminar la propiedad.",
+        target: '[data-assist-id="propiedades-listado"]',
       },
       {
         badge: "Filtros",
         title: "Búsqueda combinada",
         description:
           "Aplica el filtro rápido por nombre, ubicación o tipo y combínalo con la búsqueda global del encabezado.",
+        target: '[data-assist-id="propiedades-buscador"]',
       },
       {
         badge: "Formulario",
         title: "Publica un proyecto",
         description:
           "Registra precio, metros cuadrados, descripción y URL de imagen; marca la casilla de sostenibilidad cuando aplique.",
+        target: '[data-assist-id="propiedades-formulario"]',
       },
     ],
   },
@@ -281,18 +295,21 @@ const supportGuide: Record<Section, {
         title: "Cliente e inmueble",
         description:
           "Busca un cliente y una propiedad desde los desplegables con autocompletado para precargar sus datos.",
+        target: '[data-assist-id="simulador-seleccion"]',
       },
       {
         badge: "Parámetros",
         title: "Condiciones financieras",
         description:
           "Configura tipo y plazo de tasa, capitalización, periodos de gracia y costos iniciales antes de calcular.",
+        target: '[data-assist-id="simulador-parametros"]',
       },
       {
         badge: "Resultados",
         title: "Reportes y descargas",
         description:
           "Revisa el resumen, el cronograma con gráficos y descarga el PDF o Excel desde los botones de exportación.",
+        target: '[data-assist-id="simulador-resultados"]',
       },
     ],
   },
@@ -539,14 +556,63 @@ function DashboardHeader({
 function SupportAssistant({ activeSection }: { activeSection: Section }) {
   const [open, setOpen] = useState(false);
   const [tourSection, setTourSection] = useState<Section>(activeSection);
+  const [focusedStepIndex, setFocusedStepIndex] = useState(0);
+  const [highlightBox, setHighlightBox] = useState<
+    | { top: number; left: number; width: number; height: number; label: string }
+    | null
+  >(null);
 
   useEffect(() => {
     if (open) {
       setTourSection(activeSection);
+      setFocusedStepIndex(0);
     }
   }, [activeSection, open]);
 
   const currentGuide = supportGuide[tourSection];
+
+  const updateHighlight = useCallback(() => {
+    if (!open) {
+      setHighlightBox(null);
+      return;
+    }
+
+    const step = currentGuide.steps[focusedStepIndex];
+    if (!step?.target) {
+      setHighlightBox(null);
+      return;
+    }
+
+    const element = document.querySelector(step.target) as HTMLElement | null;
+    if (!element) {
+      setHighlightBox(null);
+      return;
+    }
+
+    const rect = element.getBoundingClientRect();
+    setHighlightBox({
+      top: rect.top - 12,
+      left: rect.left - 12,
+      width: rect.width + 24,
+      height: rect.height + 24,
+      label: step.title,
+    });
+
+    element.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+  }, [currentGuide.steps, focusedStepIndex, open]);
+
+  useEffect(() => {
+    updateHighlight();
+    if (!open) return;
+
+    const handleWindowChange = () => updateHighlight();
+    window.addEventListener("resize", handleWindowChange);
+    window.addEventListener("scroll", handleWindowChange, true);
+    return () => {
+      window.removeEventListener("resize", handleWindowChange);
+      window.removeEventListener("scroll", handleWindowChange, true);
+    };
+  }, [updateHighlight, open, tourSection]);
 
   return (
     <>
@@ -599,7 +665,10 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
               {navItems.map((item) => (
                 <button
                   key={item.key}
-                  onClick={() => setTourSection(item.key)}
+                  onClick={() => {
+                    setTourSection(item.key);
+                    setFocusedStepIndex(0);
+                  }}
                   className={`rounded-2xl border px-3 py-2 text-xs font-semibold transition ${
                     tourSection === item.key
                       ? "border-brand-200 bg-brand-50 text-brand-700"
@@ -620,9 +689,13 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
               </div>
 
               {currentGuide.steps.map((step, index) => (
-                <div
+                <button
                   key={`${tourSection}-${index}`}
-                  className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                  type="button"
+                  onClick={() => setFocusedStepIndex(index)}
+                  className={`relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition focus:outline-none focus:ring-2 focus:ring-brand-200 ${
+                    focusedStepIndex === index ? "ring-2 ring-brand-300" : ""
+                  }`}
                 >
                   <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
                     {step.badge}
@@ -633,7 +706,12 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
                   <p className="mt-1 text-sm text-slate-600">{step.description}</p>
 
                   <span className="pointer-events-none absolute -right-3 -top-3 h-12 w-12 rounded-full bg-brand-100/60" />
-                </div>
+                  {step.target && (
+                    <span className="pointer-events-none absolute bottom-3 right-4 rounded-full bg-brand-50 px-2 py-1 text-[10px] font-semibold uppercase text-brand-700">
+                      Enfocar
+                    </span>
+                  )}
+                </button>
               ))}
             </div>
 
@@ -664,6 +742,29 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
               </p>
             </div>
           </aside>
+        </div>
+      )}
+
+      {open && highlightBox && (
+        <div className="pointer-events-none fixed inset-0 z-30">
+          <div
+            className="absolute rounded-[28px] border-2 border-brand-400/80 bg-brand-100/10 shadow-[0_0_0_6px_rgba(59,130,246,0.15)] backdrop-blur-[1px]"
+            style={{
+              top: `${highlightBox.top}px`,
+              left: `${highlightBox.left}px`,
+              width: `${highlightBox.width}px`,
+              height: `${highlightBox.height}px`,
+            }}
+          />
+          <div
+            className="absolute -translate-y-3 rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow-lg"
+            style={{
+              top: `${highlightBox.top}px`,
+              left: `${highlightBox.left}px`,
+            }}
+          >
+            {highlightBox.label}
+          </div>
         </div>
       )}
     </>
@@ -762,7 +863,10 @@ function InicioScreen() {
 
   return (
     <section className="space-y-6">
-      <div className="rounded-[32px] bg-white p-8 shadow-xl">
+      <div
+        className="rounded-[32px] bg-white p-8 shadow-xl"
+        data-assist-id="inicio-panorama"
+      >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-2xl font-semibold text-slate-900">
@@ -772,7 +876,10 @@ function InicioScreen() {
               Datos actualizados desde tus clientes, propiedades y simulaciones.
             </p>
           </div>
-          <div className="flex flex-col gap-2 text-sm text-slate-500 sm:items-end">
+          <div
+            className="flex flex-col gap-2 text-sm text-slate-500 sm:items-end"
+            data-assist-id="inicio-estado"
+          >
             <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-slate-700">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
               Información en vivo
@@ -806,7 +913,10 @@ function InicioScreen() {
         </div>
       </div>
 
-      <div className="rounded-[32px] bg-white p-8 shadow-xl">
+      <div
+        className="rounded-[32px] bg-white p-8 shadow-xl"
+        data-assist-id="inicio-simulaciones"
+      >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-xl font-semibold text-slate-900">
@@ -1186,7 +1296,10 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
   return (
     <section className="space-y-6">
       <div className="grid gap-6 xl:grid-cols-[1.4fr_minmax(360px,0.8fr)]">
-        <article className="rounded-[32px] bg-white p-6 shadow-xl">
+        <article
+          className="rounded-[32px] bg-white p-6 shadow-xl"
+          data-assist-id="clientes-buscador"
+        >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold text-slate-900">
@@ -1221,7 +1334,10 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
             </p>
           </div>
 
-          <div className="mt-4 overflow-hidden rounded-3xl border border-slate-100">
+          <div
+            className="mt-4 overflow-hidden rounded-3xl border border-slate-100"
+            data-assist-id="clientes-detalle"
+          >
             <table className="min-w-full divide-y divide-slate-100 text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
@@ -1338,7 +1454,10 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
             </div>
           )}
         </article>
-        <article className="rounded-[32px] bg-white p-6 shadow-xl">
+        <article
+          className="rounded-[32px] bg-white p-6 shadow-xl"
+          data-assist-id="clientes-formulario"
+        >
           <div className="mb-4">
             <p className="text-sm uppercase tracking-widest text-brand-600">
               Formulario cliente
