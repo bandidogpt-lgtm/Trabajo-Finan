@@ -15,6 +15,7 @@ import { Inmueble } from "@/types/inmueble";
 import { useSession, signOut } from "next-auth/react";
 import * as XLSX from "xlsx-js-style";
 import ModalSimple from "@/app/components/ModalSimple";
+import ImageModal from "@/app/components/ImageModal";
 
 type Section = "inicio" | "clientes" | "propiedades" | "simulador";
 type FormMode = "create" | "edit";
@@ -1307,6 +1308,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
     type: "success" | "error";
     message: string;
   } | null>(null);
+  const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
     cargarInmuebles();
@@ -1519,12 +1521,14 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
                   <tr key={inmueble.id}>
                     <td className="px-6 py-4">
                       {inmueble.imagen_referencial ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={inmueble.imagen_referencial}
-                          alt={`Foto de ${inmueble.nombre_proyecto}`}
-                          className="h-16 w-24 rounded-2xl object-cover shadow-sm"
-                        />
+                        // eslint-disable-next-line @next/next/no-img-element                       
+                       <button onClick={() => setModalImageUrl(inmueble.imagen_referencial || null)}>
+                          <img
+                            src={inmueble.imagen_referencial}
+                            alt={`Foto de ${inmueble.nombre_proyecto}`}
+                            className="h-16 w-24 rounded-2xl object-cover shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                          />
+                        </button>
                       ) : (
                         <div className="flex h-16 w-24 items-center justify-center rounded-2xl bg-slate-100 text-xs text-slate-400">
                           Sin imagen
@@ -1803,6 +1807,10 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
           </form>
         </article>
       </div>
+      <ImageModal
+        imageUrl={modalImageUrl}
+        onClose={() => setModalImageUrl(null)}
+      />
     </section>
   );
 }
@@ -2691,16 +2699,16 @@ function SimuladorScreen() {
             <button
               type="button"
               onClick={exportarExcel}
-              className="rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold shadow hover:bg-brand-500 text-white"
+              className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600"
             >
               Exportar a Excel
             </button>
             <button
               type="button"
               onClick={generarPDF}
-              className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-rose-500"
+              className="rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600"
             >
-              Descargar y envviar por correo
+              Descargar y enviar por correo
             </button>
           </div>
         </div>
