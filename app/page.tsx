@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
   useRef,
+  ChangeEvent,
 } from "react";
 import { Cliente } from "@/types/cliente";
 import { Inmueble } from "@/types/inmueble";
@@ -102,9 +103,9 @@ type SimulacionPersistida = {
   clasificacion_bono_bbp?: number | null;
   tem_seguro_desgravamen?: number | null;
   tasa_seguro_inmueble?: number | null;
-  portes?: number | null;
-  costosIniciales?: number | null;
-  gastosAdministrativos?: number | null;
+  portes?: string | null;
+  costosIniciales?: string | null;
+  gastosAdministrativos?: string | null;
 };
 
 type SimulacionListado = {
@@ -143,9 +144,9 @@ type SimulacionForm = {
   tasaInteres: number;
   temSeguroDesgravamen: number;
   tasaSeguroInmueble: number;
-  portes: number;
-  costosIniciales: number;
-  gastosAdministrativos: number;
+  portes: string;
+  costosIniciales: string;
+  gastosAdministrativos: string;
 };
 
 const ESTADOS_CIVILES = [
@@ -1860,9 +1861,9 @@ const initialSimulacionForm: SimulacionForm = {
   tasaInteres: 10,
   temSeguroDesgravamen: 0,
   tasaSeguroInmueble: 0,
-  portes: 0,
-  costosIniciales: 0,
-  gastosAdministrativos: 0,
+  portes: "0",
+  costosIniciales: "0",
+  gastosAdministrativos: "0",
 };
 
 function SimuladorScreen() {
@@ -1923,9 +1924,11 @@ function SimuladorScreen() {
 
   useEffect(() => {
     const cuotaInicialMonto = (form.valorInmueble * form.cuotaInicial) / 100;
+    const costosInicialesNumber = parseCurrency(form.costosIniciales);
     const monto =
       Math.max(form.valorInmueble - cuotaInicialMonto - form.montoBono, 0) +
-      form.costosIniciales
+      //form.costosIniciales
+       costosInicialesNumber;
     setForm((prev) => ({
       ...prev,
       montoPrestamoCalculado: Number(monto.toFixed(2)),
@@ -1935,7 +1938,7 @@ function SimuladorScreen() {
     form.cuotaInicial,
     form.montoBono,
     form.costosIniciales,
-    form.gastosAdministrativos,
+    //form.gastosAdministrativos,
   ]);
 
   useEffect(() => {
@@ -2153,7 +2156,7 @@ function SimuladorScreen() {
       clienteDni: info.cliente.dni,
       inmuebleId: info.inmueble_id ?? info.inmueble.id,
       inmuebleBusqueda: info.inmueble.nombre_proyecto,
-      valorInmueble: Number(info.monto_prestamo),
+      valorInmueble: Number(info.inmueble.precio_venta),
       tipoMoneda: info.tipo_moneda === "Dólares" ? "Dólares" : "Soles",
       clasificacionBbp: info.clasificacion_bono_bbp ?? 0,
       labelBbp:
@@ -2173,9 +2176,12 @@ function SimuladorScreen() {
       tasaInteres: Number(info.tasa_interes),
       temSeguroDesgravamen: Number(info.tem_seguro_desgravamen ?? 0),
       tasaSeguroInmueble: Number(info.tasa_seguro_inmueble ?? 0),
-      portes: Number(info.portes ?? 0),
-      costosIniciales: Number(info.costosIniciales ?? 0),
-      gastosAdministrativos: Number(info.gastosAdministrativos ?? 0),
+      //portes: Number(info.portes ?? 0),
+      //costosIniciales: Number(info.costosIniciales ?? 0),
+      //gastosAdministrativos: Number(info.gastosAdministrativos ?? 0),
+      portes: String(info.portes ?? "0"),
+      costosIniciales: String(info.costosIniciales ?? "0"),
+      gastosAdministrativos: String(info.gastosAdministrativos ?? "0"),
     }));
     setSimulacionId(info.id_simulacion);
   }
@@ -2249,9 +2255,12 @@ function SimuladorScreen() {
         clasificacion_bono_bbp: Number(form.clasificacionBbp),
         tem_seguro_desgravamen: Number(form.temSeguroDesgravamen),
         tasa_seguro_inmueble: Number(form.tasaSeguroInmueble),
-        portes: Number(form.portes),
-        costos_iniciales: Number(form.costosIniciales),
-        gasto_admin: Number(form.gastosAdministrativos),
+        //portes: Number(form.portes),
+        //costos_iniciales: Number(form.costosIniciales),
+       // gasto_admin: Number(form.gastosAdministrativos),
+        portes: parseCurrency(form.portes),
+        costos_iniciales: parseCurrency(form.costosIniciales),
+        gasto_admin: parseCurrency(form.gastosAdministrativos),
         usuario_id: 1,
         clientes_id: form.clienteId,
         inmueble_id: form.inmuebleId,
@@ -2623,12 +2632,50 @@ function SimuladorScreen() {
     XLSX.writeFile(wb, "SimulacionCredito.xlsx", { compression: true });
   }
 
-  const formatNumber = (value: number | string) => {
-    if (value === null || value === undefined || value === "") return "";
-    const num = Number(String(value).replace(/,/g, ""));
-    if (isNaN(num)) return "";
-    return new Intl.NumberFormat("es-PE").format(num); // comas de miles
+   const parseCurrency = (value: string | number) => {
+    const numeric = Number(String(value).replace(/,/g, ""));
+    return isNaN(numeric) ? 0 : numeric;
   };
+
+  const formatCurrency = (value: number | string) => {
+    if (value === null || value === undefined) return "";
+
+    const stringValue = String(value);
+    if (stringValue === "") return "";
+
+    const sanitized = stringValue.replace(/,/g, "");
+    const [integerPart, decimalPart] = sanitized.split(".");
+    const integerNumber = Number(integerPart);
+
+    if (isNaN(integerNumber)) return "";
+
+    const formattedInteger = new Intl.NumberFormat("es-PE").format(
+      integerNumber
+    );
+
+    if (decimalPart === undefined) return formattedInteger;
+
+    return decimalPart.length > 0
+      ? `${formattedInteger}.${decimalPart}`
+      : `${formattedInteger}.`;
+  };
+
+  const handleCurrencyChange = (
+    key: "portes" | "costosIniciales" | "gastosAdministrativos"
+  ) =>
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const raw = event.target.value.replace(/,/g, "");
+      const sanitized = raw.replace(/[^0-9.]/g, "");
+      const parts = sanitized.split(".");
+      const normalized =
+        parts.length > 2 ? `${parts[0]}.${parts.slice(1).join("")}` : sanitized;
+
+      setForm((prev) => ({
+        ...prev,
+        [key]: normalized,
+      }));
+    };
+
   const simulacionesGuardadasFiltradas = useMemo(() => {
     const criterio = busquedaSimulacion.trim().toLowerCase();
     if (!criterio) return simulacionesGuardadas;
@@ -2772,7 +2819,7 @@ function SimuladorScreen() {
 
           <ResumenCard
             title="TEM"
-            value={` ${(resultado.resumen.TEM * 100).toFixed(5)}%`}
+            value={` ${(resultado.resumen.TEM * 100).toFixed(2)}%`}
           />
 
           <ResumenCard
@@ -3294,7 +3341,7 @@ function SimuladorScreen() {
 
             <Field label="Valor Inmueble">
               <input
-                value={formatNumber(form.valorInmueble)}
+                value={formatCurrency(form.valorInmueble)}
                 readOnly
                 className={`${inputBaseClasses} bg-slate-100`}
               />
@@ -3326,7 +3373,7 @@ function SimuladorScreen() {
 
             <Field label="Monto Bono Buen Pagador">
               <input
-                value={formatNumber(form.montoBono)}
+                value={formatCurrency(form.montoBono)}
                 readOnly
                 className={`${inputBaseClasses} bg-slate-100`}
               />
@@ -3349,12 +3396,8 @@ function SimuladorScreen() {
             <Field label="Costos iniciales">
               <input
                 type="text"
-                value={formatNumber(form.costosIniciales)}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/,/g, "");
-                  const num = Number(raw);
-                  actualizarForm("costosIniciales", isNaN(num) ? 0 : num);
-                }}
+                value={formatCurrency(form.costosIniciales)}
+                onChange={handleCurrencyChange("costosIniciales")}
                 className={inputBaseClasses}
                 min={0}
                 onFocus={handleNumericFocus}
@@ -3363,7 +3406,7 @@ function SimuladorScreen() {
 
             <Field label="Monto Préstamo">
               <input
-                value={formatNumber(form.montoPrestamoCalculado)}
+                value={formatCurrency(form.montoPrestamoCalculado)}
                 readOnly
                 className={`${inputBaseClasses} bg-slate-100`}
               />
@@ -3534,12 +3577,8 @@ function SimuladorScreen() {
             <Field label="Portes">
               <input
                 type="text"
-                value={formatNumber(form.portes)}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/,/g, "");
-                  const num = Number(raw);
-                  actualizarForm("portes", isNaN(num) ? 0 : num);
-                }}
+                value={formatCurrency(form.portes)}
+                onChange={handleCurrencyChange("portes")}
                 className={inputBaseClasses}
                 min={0}
                 onFocus={handleNumericFocus}
@@ -3549,12 +3588,8 @@ function SimuladorScreen() {
             <Field label="Gastos administrativos">
               <input
                 type="text"
-                value={formatNumber(form.gastosAdministrativos)}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/,/g, "");
-                  const num = Number(raw);
-                  actualizarForm("gastosAdministrativos", isNaN(num) ? 0 : num);
-                }}
+                value={formatCurrency(form.gastosAdministrativos)}
+                onChange={handleCurrencyChange("gastosAdministrativos")}
                 className={inputBaseClasses}
                 min={0}
                 onFocus={handleNumericFocus}
