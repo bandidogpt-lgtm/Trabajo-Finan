@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "Mi banqito",
+  title: "Horizonte Azul",
   description: "Panel de gestión para clientes e inmuebles",
 };
 

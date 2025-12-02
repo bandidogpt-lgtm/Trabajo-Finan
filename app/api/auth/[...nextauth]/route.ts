@@ -32,7 +32,9 @@ const authOptions: AuthOptions = {
       },
     }),
   ],
-
+  pages:{
+    signIn: "/auth/login",
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {

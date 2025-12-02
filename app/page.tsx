@@ -416,7 +416,6 @@ function DashboardHeader({
   );
 }
 
-
 function InicioScreen() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [inmuebles, setInmuebles] = useState<Inmueble[]>([]);
@@ -701,7 +700,6 @@ function IndicatorCard({
   );
 }
 
-
 function ClientesScreen({ searchTerm }: { searchTerm: string }) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [detalle, setDetalle] = useState<Cliente | null>(null);
@@ -714,6 +712,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
   const [simpleModalOpen, setSimpleModalOpen] = useState(false);
   const [simpleModalTitle, setSimpleModalTitle] = useState("");
   const [simpleModalDesc, setSimpleModalDesc] = useState("");
+  const [simpleModalFlag, setSimpleModalFlag] = useState<0 | 1>(0);
 
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
@@ -788,6 +787,30 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
       return;
     }
 
+    if (!/^\d{8}$/.test(formValues.dni)) {
+      setFeedback({
+        type: "error",
+        message: "El DNI debe contener exactamente 8 dígitos numéricos.",
+      });
+      return;
+    }
+
+    if (!/^\d{9}$/.test(formValues.telefono)) {
+      setFeedback({
+        type: "error",
+        message: "El teléfono debe contener exactamente 9 dígitos numéricos.",
+      });
+      return;
+    }
+
+    if (Number(formValues.ingreso_mensual) <= 0) {
+      setFeedback({
+        type: "error",
+        message: "El ingreso mensual debe ser un número positivo.",
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
@@ -824,16 +847,30 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
       
       setSimpleModalTitle(
         formMode === "create"
-          ? "Cliente registrado con éxito"
-          : "Cliente actualizado"
+          ? "Bienvenido a Horizonte Azul"
+          : "Hemos actualizado tu información"
       );
 
-      setSimpleModalDesc(
-        formMode === "create"
-          ? "El nuevo cliente ha sido agregado correctamente a la base de datos."
-          : "Los cambios realizados fueron guardados exitosamente."
-      );
+      const ingreso = Number(formValues.ingreso_mensual);
+      let mensajeFinanciamiento = "";
+      let flag: 0 | 1 = 0; // por defecto sin confetti
 
+      if (ingreso < 500) {
+        mensajeFinanciamiento =
+          "Lo sentimos, pero no puedes acceder al financiamiento.";
+        flag = 0; // ❌ sin confetti
+      } else if (ingreso >= 500 && ingreso <= 1700) {
+        mensajeFinanciamiento =
+          "¡Felicitaciones! Puedes acceder al crédito Techo Propio.";
+        flag = 1; // 🎉 con confetti
+      } else if (ingreso > 1700) {
+        mensajeFinanciamiento =
+          "¡Felicitaciones! Puedes acceder al crédito MiVivienda.";
+        flag = 1; // 🎉 con confetti
+      }
+
+      setSimpleModalDesc(mensajeFinanciamiento);
+      setSimpleModalFlag(flag);      // ⬅️ aquí guardas 0 o 1
       setSimpleModalOpen(true);
 
     } catch (error) {
@@ -907,19 +944,8 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
             </div>
             <div className="flex gap-3">
               <button
-                onClick={() => {
-                  setSimpleModalTitle("Nuevo mensaje");
-                  setSimpleModalDesc("Este es un modal abierto desde el botón.");
-                  setSimpleModalOpen(true);
-                }}
-                className="rounded-2xl bg-slate-200 px-5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300"
-              >
-                Abrir Modal
-              </button>
-
-              <button
                 onClick={cargarClientes}
-                className="rounded-2xl bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500"
+                className="rounded-2xl bg-brand-600 px-5 py-2 text-sm font-semibold shadow hover:bg-brand-500"
               >
                 {loading ? "Actualizando…" : "Actualizar"}
               </button>
@@ -1216,7 +1242,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
                 </select>
               </Field>
 
-              <Field label="¿Es dueño de propiedad?">
+              <Field label="¿Dueño de propiedad?">
                 <select
                   className={inputBaseClasses}
                   value={formValues.flag_condiciones ? "1" : "0"}
@@ -1237,7 +1263,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-2xl bg-brand-600 px-6 py-2 font-semibold text-slate-500 disabled:opacity-50"
+                className="rounded-2xl border border-slate-200 px-6 py-2 font-semibold text-slate-500"
               >
                 {submitting
                   ? "Guardando…"
@@ -1259,6 +1285,7 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
           open={simpleModalOpen}
           title={simpleModalTitle}
           description={simpleModalDesc}
+          flag={simpleModalFlag}
           onClose={() => setSimpleModalOpen(false)}
         />
       </div>
@@ -1442,7 +1469,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
             </div>
             <button
               onClick={cargarInmuebles}
-              className="rounded-2xl bg-brand-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500"
+              className="rounded-2xl bg-brand-600 px-5 py-2 text-sm font-semibold shadow hover:bg-brand-500"
             >
               {loading ? "Actualizando…" : "Actualizar"}
             </button>
@@ -1757,7 +1784,7 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-2xl bg-brand-600 px-6 py-2 font-semibold text-slate-500 disabled:opacity-50"
+                className="rounded-2xl border border-slate-200 px-6 py-2 font-semibold text-slate-500"
               >
                 {submitting
                   ? "Guardando…"
@@ -2865,7 +2892,7 @@ function SimuladorScreen() {
           <button
             type="button"
             onClick={cargarSimulacionesGuardadas}
-            className="rounded-2xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-brand-500 disabled:opacity-60"
+            className="rounded-2xl bg-brand-600 px-5 py-2 text-sm font-semibold shadow hover:bg-brand-500"
             disabled={cargandoLista}
           >
             {cargandoLista ? "Actualizando…" : "Actualizar lista"}
@@ -2931,7 +2958,7 @@ function SimuladorScreen() {
                   <button
                     type="button"
                     onClick={() => verDetalleSimulacion(simulacion.id_simulacion)}
-                    className="rounded-xl bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow hover:bg-brand-500"
+                    className="rounded-2xl bg-brand-600 px-5 py-2 text-sm font-semibold shadow hover:bg-brand-500"
                   >
                     Ver más
                   </button>
@@ -2980,7 +3007,7 @@ function SimuladorScreen() {
                 setVistaSimulador("lista");
                 setResultado(null);
               }}
-              className="rounded-2xl bg-brand-100 px-4 py-2 text-sm font-semibold text-brand-700"
+              className="rounded-2xl bg-brand-600 px-5 py-2 text-sm font-semibold shadow hover:bg-brand-500"
             >
               Visualizar simulaciones
             </button>
@@ -3420,16 +3447,9 @@ function SimuladorScreen() {
 
             <div className="col-span-full flex flex-wrap gap-3 pt-2">
               <button
-                type="button"
-                onClick={limpiarSimulacion}
-                className="rounded-2xl border border-slate-200 px-6 py-2 font-semibold text-slate-500"
-              >
-                Cancelar
-              </button>
-              <button
                 type="submit"
                 disabled={loading}
-                className="rounded-2xl bg-brand-600 px-6 py-2 font-semibold shadow hover:bg-brand-500 disabled:opacity-50"
+                className="rounded-2xl border border-slate-200 px-6 py-2 font-semibold text-slate-500"
               >
                 {loading
                   ? simulacionId
@@ -3438,6 +3458,13 @@ function SimuladorScreen() {
                   : simulacionId
                   ? "Actualizar"
                   : "Calcular"}
+              </button>
+              <button
+                type="button"
+                onClick={limpiarSimulacion}
+                className="rounded-2xl border border-slate-200 px-6 py-2 font-semibold text-slate-500"
+              >
+                Cancelar
               </button>
             </div>
           </form>
