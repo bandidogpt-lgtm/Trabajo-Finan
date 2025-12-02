@@ -277,25 +277,29 @@ export default function Home() {
     {
       id: "inicio",
       label: "Inicio",
-      description: "Indicadores, resumen del portafolio y métricas principales",
+      description:
+        "Recorrido por las métricas, indicadores y el resumen del portafolio en el dashboard principal",
       stepIds: ["inicio:indicadores"],
     },
     {
       id: "clientes",
       label: "Clientes",
-      description: "Registro, edición, eliminación y detalle de clientes",
+      description:
+        "Guía para registrar, filtrar, ver detalle, editar o eliminar clientes desde la tabla",
       stepIds: ["clientes:gestion"],
     },
     {
       id: "propiedades",
       label: "Propiedades",
-      description: "Carga, imágenes, metrajes, precios y filtros del inventario",
+      description:
+        "Pasos para agregar inmuebles, gestionar imágenes, metrajes, precios y filtros del inventario",
       stepIds: ["propiedades:inventario"],
     },
     {
       id: "simulador",
       label: "Simulaciones",
-      description: "Selección de cliente y propiedad, parámetros y exportaciones",
+      description:
+        "Recorrido para seleccionar cliente y propiedad, ingresar tasas, revisar cronograma y exportar",
       stepIds: ["simulador:credito"],
     },
   ];
@@ -372,6 +376,7 @@ export default function Home() {
         steps={tourSteps}
         sectionTours={sectionTours}
         manualUrl="/manual-usuario.pdf"
+        activeSection={activeSection}
         onStepChange={handleTourStepChange}
       />
     </div>

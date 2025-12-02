@@ -21,6 +21,7 @@ type HelpAssistantProps = {
   steps: TourStep[];
   sectionTours?: SectionTour[];
   manualUrl: string;
+  activeSection?: string;
   onStepChange?: (stepId: string) => void;
 };
 
@@ -35,6 +36,7 @@ export function HelpAssistant({
   steps,
   sectionTours,
   manualUrl,
+  activeSection,
   onStepChange,
 }: HelpAssistantProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -49,6 +51,14 @@ export function HelpAssistant({
     const [section] = currentStep.id.split(":");
     return section;
   }, [currentStep]);
+
+  const visibleSectionTours = useMemo(
+    () =>
+      (sectionTours ?? []).filter(
+        (section) => !activeSection || section.id === activeSection,
+      ),
+    [activeSection, sectionTours],
+  );
 
   useEffect(() => {
     if (isTourActive && currentStep?.id && onStepChange) {
@@ -156,8 +166,8 @@ export function HelpAssistant({
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 z-30 flex items-end justify-end bg-black/5 p-4 sm:items-start sm:p-8">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+        <div className="pointer-events-none fixed inset-0 z-30 flex items-end justify-end bg-transparent p-4 sm:items-start sm:p-8">
+          <div className="pointer-events-auto w-full min-w-[380px] max-w-[420px] rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
@@ -182,7 +192,7 @@ export function HelpAssistant({
               </button>
             </div>
 
-            <div className="mt-4 space-y-3">
+            <div className="mt-4 max-h-[72vh] space-y-4 overflow-y-auto pr-1">
               <div className="space-y-3">
                 <button
                   type="button"
@@ -208,13 +218,13 @@ export function HelpAssistant({
                   <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">{steps.length} pasos</span>
                 </button>
 
-                {sectionTours?.length ? (
-                  <div className="space-y-2">
+                {visibleSectionTours.length ? (
+                  <div className="space-y-3">
                     <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
-                      Recorridos por sección
+                      Recorridos de la vista actual
                     </p>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      {sectionTours.map((section) => {
+                    <div className="space-y-2">
+                      {visibleSectionTours.map((section) => {
                         const firstStep = steps.find((step) => section.stepIds.includes(step.id));
                         if (!firstStep) return null;
 
@@ -223,7 +233,7 @@ export function HelpAssistant({
                             key={section.id}
                             type="button"
                             onClick={() => startTour(firstStep.id)}
-                            className="flex flex-col items-start gap-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:border-[#0f1c2f] hover:bg-white"
+                            className="flex flex-col items-start gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-semibold text-slate-900 shadow-sm transition hover:border-[#0f1c2f] hover:shadow-lg"
                           >
                             <span className="inline-flex rounded-full bg-[#0f1c2f]/10 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#0f1c2f]">
                               {section.label}
