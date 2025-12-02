@@ -252,28 +252,6 @@ export default function Home() {
       targetRef: dashboardCardsRef,
     },
     {
-      id: "inicio:metricas",
-      title: "Analizar métricas",
-      description:
-        "Observa el resumen financiero para interpretar VAN, TIR y TCEA de manera rápida y accionable.",
-      bullets: [
-        "Lee las métricas resaltadas para validar el rendimiento general del portafolio.",
-        "Usa la descripción de cada métrica para comprender qué variable de negocio representa.",
-      ],
-      targetRef: dashboardTableRef,
-    },
-    {
-      id: "inicio:grafico",
-      title: "Interpretar gráficos",
-      description:
-        "Revisa los gráficos de tendencia y distribución para detectar comportamientos y oportunidades.",
-      bullets: [
-        "Relaciona los ejes y leyendas para comparar periodos y categorías.",
-        "Identifica picos o caídas para profundizar en el detalle del panel.",
-      ],
-      targetRef: dashboardTableRef,
-    },
-    {
       id: "inicio:navegacion",
       title: "Navegación general del panel",
       description:
@@ -351,17 +329,6 @@ export default function Home() {
       targetRef: propiedadesEditarRef,
     },
     {
-      id: "propiedades:imagenes",
-      title: "Subir o ver imágenes",
-      description:
-        "Gestiona la galería de cada propiedad para mostrar referencias visuales claras al cliente.",
-      bullets: [
-        "Carga imágenes en buena resolución y revisa las miniaturas.",
-        "Elimina o reemplaza imágenes que ya no correspondan al inmueble.",
-      ],
-      targetRef: propiedadesImagenBotonRef,
-    },
-    {
       id: "propiedades:filtros",
       title: "Aplicar filtros de búsqueda",
       description:
@@ -395,17 +362,6 @@ export default function Home() {
       targetRef: simuladorPropiedadRef,
     },
     {
-      id: "simulador:parametros",
-      title: "Completar parámetros del crédito",
-      description:
-        "Ingresa tasa, capitalización, plazos, seguros y costos para calcular la cuota y el cronograma.",
-      bullets: [
-        "Verifica los campos numéricos con el formato de decimales y miles.",
-        "Ajusta periodo de gracia y capitalización según la propuesta.",
-      ],
-      targetRef: simuladorParametrosRef,
-    },
-    {
       id: "simulador:cronograma",
       title: "Generar cronograma y exportar PDF/Excel",
       description:
@@ -428,18 +384,6 @@ export default function Home() {
           label: "Revisar indicadores",
           description: "Observa los mosaicos principales y su actualización en tiempo real.",
           startStepId: "inicio:indicadores",
-        },
-        {
-          id: "inicio-analizar-metricas",
-          label: "Analizar métricas",
-          description: "Interpreta VAN, TIR y TCEA desde el resumen financiero.",
-          startStepId: "inicio:metricas",
-        },
-        {
-          id: "inicio-interpretar-graficos",
-          label: "Interpretar gráficos",
-          description: "Lee tendencias y distribuciones para detectar oportunidades.",
-          startStepId: "inicio:grafico",
         },
         {
           id: "inicio-navegacion-panel",
@@ -496,12 +440,6 @@ export default function Home() {
           startStepId: "propiedades:editar",
         },
         {
-          id: "propiedades-imagenes",
-          label: "Subir o ver imágenes",
-          description: "Gestiona la galería y reemplaza referencias visuales.",
-          startStepId: "propiedades:imagenes",
-        },
-        {
           id: "propiedades-filtros",
           label: "Aplicar filtros de búsqueda",
           description: "Refina el inventario por ubicación, tipo o precio.",
@@ -524,12 +462,6 @@ export default function Home() {
           label: "Seleccionar propiedad",
           description: "Escoge el inmueble adecuado para la propuesta.",
           startStepId: "simulador:propiedad",
-        },
-        {
-          id: "simulador-parametros",
-          label: "Completar parámetros del crédito",
-          description: "Ingresa tasas, plazos, seguros y costos asociados.",
-          startStepId: "simulador:parametros",
         },
         {
           id: "simulador-cronograma",

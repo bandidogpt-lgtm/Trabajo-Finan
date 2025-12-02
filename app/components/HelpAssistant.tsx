@@ -384,11 +384,27 @@ export function HelpAssistant({
             }}
           />
 
+          {(() => {
+            const placeTooltipAbove =
+              currentStep.id === "clientes:registrar" ||
+              currentStep.id === "propiedades:registrar" ||
+              currentStep.id === "simulador:cronograma";
+
+            const tooltipTop = placeTooltipAbove
+              ? spotlight.top
+              : spotlight.top + spotlight.height + 16;
+
+            const tooltipTransform = placeTooltipAbove
+              ? "translateY(-100%) translateY(-16px)"
+              : undefined;
+
+            return (
           <div
             className="pointer-events-auto fixed z-[9999] max-w-sm rounded-2xl bg-white p-4 shadow-2xl ring-1 ring-slate-200"
             style={{
-              top: spotlight.top + spotlight.height + 16,
+              top: tooltipTop,
               left: Math.min(spotlight.left, window.innerWidth - 340),
+              transform: tooltipTransform,
             }}
           >
             <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600">
@@ -396,7 +412,11 @@ export function HelpAssistant({
             </div>
 
             <div className="relative">
-              <div className="absolute -top-4 left-10 h-3 w-3 rotate-45 bg-white ring-1 ring-slate-200" />
+              <div
+                className={`absolute left-10 h-3 w-3 rotate-45 bg-white ring-1 ring-slate-200 ${
+                  placeTooltipAbove ? "-bottom-4" : "-top-4"
+                }`}
+              />
               <h3 className="text-base font-semibold text-slate-900">{currentStep.title}</h3>
               <p className="mt-1 text-sm text-slate-600">{currentStep.description}</p>
               {currentStep.bullets && (
@@ -453,6 +473,8 @@ export function HelpAssistant({
               </div>
             </div>
           </div>
+            );
+          })()}
         </div>
       )}
     </>
