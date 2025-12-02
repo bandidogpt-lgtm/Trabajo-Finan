@@ -30,6 +30,7 @@ import {
 
 type Section = "inicio" | "clientes" | "propiedades" | "simulador";
 type FormMode = "create" | "edit";
+type AssistContextDetail = { section: Section; label?: string };
 
 type ClienteForm = {
   dni: string;
@@ -321,12 +322,25 @@ const currencyFormatter = new Intl.NumberFormat("es-PE", {
   minimumFractionDigits: 2,
 });
 
+function emitAssistContext(section: Section, label?: string) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent<AssistContextDetail>("assist:context", {
+      detail: { section, label },
+    })
+  );
+}
+
 const inputBaseClasses =
   "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 focus:border-brand-400 focus:outline-none focus:ring-0";
 
 export default function Home() {
   const [activeSection, setActiveSection] = useState<Section>("inicio");
   const [globalSearch, setGlobalSearch] = useState("");
+
+  useEffect(() => {
+    emitAssistContext(activeSection, supportGuide[activeSection].title);
+  }, [activeSection]);
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -558,6 +572,7 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
   const [tourSection, setTourSection] = useState<Section>(activeSection);
   const [focusedStepIndex, setFocusedStepIndex] = useState(0);
   const [peekMode, setPeekMode] = useState(false);
+  const [contextLabel, setContextLabel] = useState<string | null>(null);
   const [highlightBox, setHighlightBox] = useState<
     | {
         top: number;
@@ -574,8 +589,22 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
       setTourSection(activeSection);
       setFocusedStepIndex(0);
       setPeekMode(false);
+      setContextLabel(supportGuide[activeSection].title);
     }
   }, [activeSection, open]);
+
+  useEffect(() => {
+    const handleAssistContext = (event: Event) => {
+      const detail = (event as CustomEvent<AssistContextDetail>).detail;
+      if (!detail) return;
+
+      setTourSection(detail.section);
+      setContextLabel(detail.label ?? supportGuide[detail.section].title);
+    };
+
+    window.addEventListener("assist:context", handleAssistContext);
+    return () => window.removeEventListener("assist:context", handleAssistContext);
+  }, []);
 
   const currentGuide = supportGuide[tourSection];
 
@@ -640,13 +669,17 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
       {open && (
         <div className="fixed inset-0 z-40 flex items-end justify-end sm:items-stretch">
           <div
-            className={`absolute inset-0 bg-gradient-to-l from-slate-900/15 via-slate-900/8 to-transparent transition-opacity duration-300 sm:via-slate-900/4 ${peekMode ? "opacity-60" : "opacity-90"}`}
+            className={`absolute inset-0 bg-gradient-to-l from-slate-900/10 via-slate-900/5 to-transparent transition-opacity duration-300 sm:left-auto sm:right-0 sm:top-4 sm:bottom-4 sm:w-[460px] ${peekMode ? "opacity-40" : "opacity-80"}`}
             onClick={() => setOpen(false)}
-            style={{ backdropFilter: peekMode ? "none" : "blur(1px)" }}
+            style={{
+              backdropFilter: peekMode ? "none" : "blur(0.5px)",
+              pointerEvents: peekMode ? "none" : "auto",
+            }}
           />
 
           <aside
-            className={`relative z-10 flex h-[85vh] w-full max-w-sm flex-col gap-4 overflow-hidden rounded-t-3xl bg-white p-6 shadow-2xl transition-transform duration-300 sm:h-full sm:rounded-none sm:rounded-l-3xl ${peekMode ? "sm:translate-x-[45%] sm:opacity-90" : "sm:translate-x-0"}`}
+            className={`pointer-events-auto relative z-10 flex h-[85vh] w-full max-w-sm flex-col gap-4 overflow-hidden rounded-t-3xl bg-white p-6 shadow-2xl transition-transform duration-300 sm:h-[calc(100%-2rem)] sm:rounded-none sm:rounded-l-3xl sm:border-l sm:border-slate-100 ${peekMode ? "sm:translate-x-[35%] sm:opacity-95" : "sm:translate-x-0"}`}
+            style={{ marginRight: peekMode ? "0" : "1rem" }}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -680,9 +713,16 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600">
+            <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600">
               <span className="h-2 w-2 rounded-full bg-emerald-500" />
-              {`Estás en ${supportGuide[activeSection].title}`}
+              <span className="rounded-full bg-white px-2 py-1 text-[11px] font-semibold text-brand-700 shadow-sm">
+                {supportGuide[activeSection].title}
+              </span>
+              {contextLabel && (
+                <span className="rounded-full bg-slate-900/5 px-2 py-1 text-[11px] font-semibold text-slate-700">
+                  {contextLabel}
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -779,8 +819,8 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
               width: `${highlightBox.width}px`,
               height: `${highlightBox.height}px`,
               boxShadow:
-                "0 0 0 9999px rgba(15,23,42,0.32), 0 0 0 4px rgba(59,130,246,0.45)",
-              backdropFilter: "blur(0.35px)",
+                "0 0 0 9999px rgba(15,23,42,0.18), 0 0 0 4px rgba(59,130,246,0.48)",
+              backdropFilter: "blur(0.2px)",
             }}
           />
           <div
@@ -805,6 +845,10 @@ function InicioScreen() {
   const [filtroSimulacion, setFiltroSimulacion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    emitAssistContext("inicio", "Inicio · Resumen y actividad reciente");
+  }, []);
 
   const cargarResumen = useCallback(async () => {
     try {
@@ -1104,6 +1148,10 @@ function ClientesScreen({ searchTerm }: { searchTerm: string }) {
   const [simpleModalTitle, setSimpleModalTitle] = useState("");
   const [simpleModalDesc, setSimpleModalDesc] = useState("");
   const [simpleModalFlag, setSimpleModalFlag] = useState<0 | 1>(0);
+
+  useEffect(() => {
+    emitAssistContext("clientes", "Clientes · Gestión y formularios");
+  }, []);
 
   const [feedback, setFeedback] = useState<{
     type: "success" | "error";
@@ -1710,6 +1758,10 @@ function InmueblesScreen({ searchTerm }: { searchTerm: string }) {
   const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    emitAssistContext("propiedades", "Propiedades · Inventario y publicación");
+  }, []);
+
+  useEffect(() => {
     cargarInmuebles();
   }, []);
 
@@ -2287,6 +2339,17 @@ function SimuladorScreen() {
     () => new Date().toISOString().split("T")[0],
     []
   );
+
+  useEffect(() => {
+    const label =
+      vistaSimulador === "lista"
+        ? "Simulaciones · Historial"
+        : vistaSimulador === "detalle"
+          ? "Simulador · Resultados"
+          : "Simulador · Formulario";
+
+    emitAssistContext("simulador", label);
+  }, [vistaSimulador]);
 
   const cargarSimulacionesGuardadas = useCallback(async () => {
     try {
@@ -3595,13 +3658,20 @@ function SimuladorScreen() {
 
         {feedback && vistaSimulador !== "lista" as any&& (
           <div
-            className={`rounded-2xl px-4 py-3 text-sm ${
+            className={`flex items-start justify-between gap-3 rounded-2xl px-4 py-3 text-sm ${
               feedback.type === "error"
                 ? "bg-red-50 text-red-700 ring-1 ring-red-100"
                 : "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100"
             }`}
           >
-            {feedback.message}
+            <span className="pt-0.5">{feedback.message}</span>
+            <button
+              type="button"
+              onClick={() => setFeedback(null)}
+              className="rounded-full px-2 py-1 text-xs font-semibold text-slate-500 transition hover:bg-white/60"
+            >
+              Cerrar
+            </button>
           </div>
         )}
 
