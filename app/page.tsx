@@ -640,8 +640,9 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
       {open && (
         <div className="fixed inset-0 z-40 flex items-end justify-end sm:items-stretch">
           <div
-            className="absolute inset-0 bg-slate-900/30 backdrop-blur-sm"
+            className={`absolute inset-0 bg-gradient-to-l from-slate-900/15 via-slate-900/8 to-transparent transition-opacity duration-300 sm:via-slate-900/4 ${peekMode ? "opacity-60" : "opacity-90"}`}
             onClick={() => setOpen(false)}
+            style={{ backdropFilter: peekMode ? "none" : "blur(1px)" }}
           />
 
           <aside
@@ -771,15 +772,15 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
       {open && highlightBox && (
         <div className="pointer-events-none fixed inset-0 z-50">
           <div
-            className="absolute rounded-[22px] border border-brand-400/70 shadow-[0_0_0_4px_rgba(59,130,246,0.45)] drop-shadow-[0_18px_45px_rgba(15,23,42,0.25)]"
+            className="absolute rounded-[22px] border border-brand-400/80 shadow-[0_0_0_4px_rgba(59,130,246,0.45)] drop-shadow-[0_18px_45px_rgba(15,23,42,0.24)]"
             style={{
               top: `${highlightBox.top}px`,
               left: `${highlightBox.left}px`,
               width: `${highlightBox.width}px`,
               height: `${highlightBox.height}px`,
               boxShadow:
-                "0 0 0 9999px rgba(15,23,42,0.50), 0 0 0 4px rgba(59,130,246,0.45)",
-              backdropFilter: "blur(1px)",
+                "0 0 0 9999px rgba(15,23,42,0.32), 0 0 0 4px rgba(59,130,246,0.45)",
+              backdropFilter: "blur(0.35px)",
             }}
           />
           <div
