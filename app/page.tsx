@@ -557,8 +557,15 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
   const [open, setOpen] = useState(false);
   const [tourSection, setTourSection] = useState<Section>(activeSection);
   const [focusedStepIndex, setFocusedStepIndex] = useState(0);
+  const [peekMode, setPeekMode] = useState(false);
   const [highlightBox, setHighlightBox] = useState<
-    | { top: number; left: number; width: number; height: number; label: string }
+    | {
+        top: number;
+        left: number;
+        width: number;
+        height: number;
+        label: string;
+      }
     | null
   >(null);
 
@@ -566,10 +573,15 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
     if (open) {
       setTourSection(activeSection);
       setFocusedStepIndex(0);
+      setPeekMode(false);
     }
   }, [activeSection, open]);
 
   const currentGuide = supportGuide[tourSection];
+
+  useEffect(() => {
+    if (!open) setPeekMode(false);
+  }, [open]);
 
   const updateHighlight = useCallback(() => {
     if (!open) {
@@ -591,10 +603,10 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
 
     const rect = element.getBoundingClientRect();
     setHighlightBox({
-      top: rect.top - 12,
-      left: rect.left - 12,
-      width: rect.width + 24,
-      height: rect.height + 24,
+      top: rect.top - 16,
+      left: rect.left - 16,
+      width: rect.width + 32,
+      height: rect.height + 32,
       label: step.title,
     });
 
@@ -632,7 +644,9 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
             onClick={() => setOpen(false)}
           />
 
-          <aside className="relative z-10 flex h-[85vh] w-full max-w-md flex-col gap-4 overflow-hidden rounded-t-3xl bg-white p-6 shadow-2xl sm:h-full sm:rounded-none sm:rounded-l-3xl">
+          <aside
+            className={`relative z-10 flex h-[85vh] w-full max-w-sm flex-col gap-4 overflow-hidden rounded-t-3xl bg-white p-6 shadow-2xl transition-transform duration-300 sm:h-full sm:rounded-none sm:rounded-l-3xl ${peekMode ? "sm:translate-x-[45%] sm:opacity-90" : "sm:translate-x-0"}`}
+          >
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-wide text-slate-500">
@@ -646,14 +660,23 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-                aria-label="Cerrar panel de asistencia"
-              >
-                ✕
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPeekMode((prev) => !prev)}
+                  className="hidden rounded-full bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700 transition hover:bg-brand-100 sm:inline-flex"
+                >
+                  {peekMode ? "Mostrar panel" : "Ver enfoque"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                  aria-label="Cerrar panel de asistencia"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 rounded-2xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600">
@@ -746,21 +769,24 @@ function SupportAssistant({ activeSection }: { activeSection: Section }) {
       )}
 
       {open && highlightBox && (
-        <div className="pointer-events-none fixed inset-0 z-30">
+        <div className="pointer-events-none fixed inset-0 z-50">
           <div
-            className="absolute rounded-[28px] border-2 border-brand-400/80 bg-brand-100/10 shadow-[0_0_0_6px_rgba(59,130,246,0.15)] backdrop-blur-[1px]"
+            className="absolute rounded-[22px] border border-brand-400/70 shadow-[0_0_0_4px_rgba(59,130,246,0.45)] drop-shadow-[0_18px_45px_rgba(15,23,42,0.25)]"
             style={{
               top: `${highlightBox.top}px`,
               left: `${highlightBox.left}px`,
               width: `${highlightBox.width}px`,
               height: `${highlightBox.height}px`,
+              boxShadow:
+                "0 0 0 9999px rgba(15,23,42,0.50), 0 0 0 4px rgba(59,130,246,0.45)",
+              backdropFilter: "blur(1px)",
             }}
           />
           <div
-            className="absolute -translate-y-3 rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow-lg"
+            className="absolute -translate-y-4 translate-x-2 rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow-lg"
             style={{
               top: `${highlightBox.top}px`,
-              left: `${highlightBox.left}px`,
+              left: `${highlightBox.left + Math.max(Math.min(highlightBox.width - 120, 24), -8)}px`,
             }}
           >
             {highlightBox.label}
