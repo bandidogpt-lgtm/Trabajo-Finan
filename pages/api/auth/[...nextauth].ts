@@ -3,13 +3,20 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import db from "@/lib/db";
 import bcrypt from "bcryptjs";
 
-const authOptions: AuthOptions = {
+export const authOptions: AuthOptions = {
+  session: {
+    strategy: "jwt",
+  },
+  pages: {
+    signIn: "/auth/login",
+    error: "/auth/login",
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Correo", type: "text", placeholder: "usuario@gmail.com" },
-        password: { label: "Contraseña", type: "password", placeholder: "**********" },
+        email: { label: "Correo", type: "text" },
+        password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
         const usuarioBuscado = await db.usuario.findUnique({
@@ -22,6 +29,7 @@ const authOptions: AuthOptions = {
           credentials!.password,
           usuarioBuscado.clave
         );
+
         if (!flagClave) return null;
 
         return {
@@ -32,9 +40,6 @@ const authOptions: AuthOptions = {
       },
     }),
   ],
-  pages:{
-    signIn: "/auth/login",
-  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -43,7 +48,6 @@ const authOptions: AuthOptions = {
       }
       return token;
     },
-
     async session({ session, token }) {
       if (session.user) {
         session.user.name = token.name;
@@ -54,5 +58,4 @@ const authOptions: AuthOptions = {
   },
 };
 
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+export default NextAuth(authOptions);

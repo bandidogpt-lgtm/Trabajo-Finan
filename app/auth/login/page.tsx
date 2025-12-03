@@ -69,6 +69,7 @@ function LoginPage() {
       <h1 className="text-xl uppercase tracking-[0.3em] text-white mb-5 text-center">
         Inmobiliaria<br /> Horizonte Azul
       </h1>
+
       <div className="bg-white shadow-lg rounded-2xl p-8 w-full max-w-md">
         <h2 className="text-center text-2xl font-bold mb-6 text-[#0d0d0d]">
           Inicio de Sesión
@@ -117,6 +118,8 @@ function LoginPage() {
             </p>
           )}
 
+
+          {/* BOTÓN CON LOADING */}
           <button
             type="submit"
             disabled={loading}
