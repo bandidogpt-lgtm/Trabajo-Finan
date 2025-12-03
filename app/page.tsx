@@ -3291,7 +3291,7 @@ function SimuladorScreen({
          <ResumenCard
           title="Monto préstamo"
           value={getCurrencyFormatter(form.tipoMoneda).format(
-            resultado.resumen.monto_prestamo_total
+            Math.round(resultado.resumen.monto_prestamo_total)
           )}
         />
         </div>
@@ -3342,7 +3342,7 @@ function SimuladorScreen({
                         <span>
                           Capital amortizado:{" "}
                           {getCurrencyFormatter(form.tipoMoneda).format(
-                            Math.abs(metricasResultado.totalAmortizacion)
+                            Math.round(Math.abs(metricasResultado.totalAmortizacion))
                           )}
                         </span>
                       </div>
@@ -3352,7 +3352,7 @@ function SimuladorScreen({
                         <span>
                           Intereses:{" "}
                           {getCurrencyFormatter(form.tipoMoneda).format(
-                            Math.abs(metricasResultado.totalInteres)
+                            Math.round(Math.abs(metricasResultado.totalInteres))
                           )}
                          </span>
                       </div>
