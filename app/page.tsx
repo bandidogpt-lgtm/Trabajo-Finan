@@ -3250,7 +3250,9 @@ function SimuladorScreen({
 
           <ResumenCard
             title="VAN"
-            value={currencyFormatter.format(resultado.resumen.VAN)}
+              value={getCurrencyFormatter(form.tipoMoneda).format(
+              resultado.resumen.VAN
+            )}
           />
 
           <ResumenCard title="TIR" value={resultado.resumen.TIR} />
@@ -3263,7 +3265,7 @@ function SimuladorScreen({
 
             <ResumenCard
               title="Monto del bono del Buen Pagador"
-              value={currencyFormatter.format(
+                value={getCurrencyFormatter(form.tipoMoneda).format(
                 simulacionSeleccionada?.monto_bono_bbp ?? 0
               )}
             />
@@ -3271,7 +3273,9 @@ function SimuladorScreen({
 
           <ResumenCard
             title="Cuota base"
-            value={currencyFormatter.format(resultado.resumen.cuota_base)}
+            value={getCurrencyFormatter(form.tipoMoneda).format(
+             resultado.resumen.cuota_base
+            )}         
           />
 
           <ResumenCard
@@ -3284,12 +3288,12 @@ function SimuladorScreen({
             value={` ${(resultado.resumen.TEM * 100).toFixed(2)}%`}
           />
 
-          <ResumenCard
-            title="Monto préstamo"
-            value={currencyFormatter.format(
-              resultado.resumen.monto_prestamo_total
-            )}
-          />
+         <ResumenCard
+          title="Monto préstamo"
+          value={getCurrencyFormatter(form.tipoMoneda).format(
+            resultado.resumen.monto_prestamo_total
+          )}
+        />
         </div>
 
         {metricasResultado && (
@@ -3337,7 +3341,7 @@ function SimuladorScreen({
                         <span className="h-3 w-3 rounded-full bg-sky-500" />
                         <span>
                           Capital amortizado:{" "}
-                          {currencyFormatter.format(
+                          {getCurrencyFormatter(form.tipoMoneda).format(
                             Math.abs(metricasResultado.totalAmortizacion)
                           )}
                         </span>
@@ -3347,10 +3351,10 @@ function SimuladorScreen({
                         <span className="h-3 w-3 rounded-full bg-orange-500" />
                         <span>
                           Intereses:{" "}
-                          {currencyFormatter.format(
+                          {getCurrencyFormatter(form.tipoMoneda).format(
                             Math.abs(metricasResultado.totalInteres)
                           )}
-                        </span>
+                         </span>
                       </div>
 
                       <p className="text-xs text-slate-500">
@@ -3388,15 +3392,18 @@ function SimuladorScreen({
                       }}
                     />
                     <YAxis yAxisId="left" 
-                    tickFormatter={(value) => currencyFormatter.format(Number(value))}
+                    tickFormatter={(value) => getCurrencyFormatter(form.tipoMoneda).format(
+                          Number(value))}
                     style={{ fontSize: 10, fill: "#64748b" }}/>
                     <YAxis yAxisId="right" 
                     orientation="right" 
-                    tickFormatter={(value) => currencyFormatter.format(Number(value))}
+                    tickFormatter={(value) => getCurrencyFormatter(form.tipoMoneda).format(
+                          Number(value))}
                     style={{ fontSize: 10, fill: "#64748b" }}/>
                     <Tooltip
                       formatter={(value: number) =>
-                        currencyFormatter.format(Number(value))
+                        getCurrencyFormatter(form.tipoMoneda).format(
+                          Number(value))
                       }
                     />
                     <Legend verticalAlign="top" height={36} />
@@ -3571,7 +3578,9 @@ function SimuladorScreen({
                   {simulacion.inmueble.nombre_proyecto}
                 </td>
                 <td className="px-4 py-3 text-slate-600">
-                  {currencyFormatter.format(simulacion.monto_prestamo)}
+                  {getCurrencyFormatter(
+                    simulacion.tipo_moneda === "Dólares" ? "Dólares" : "Soles"
+                  ).format(Number(simulacion.monto_prestamo))}
                 </td>
                 <td className="px-4 py-3 text-slate-600">
                   {simulacion.tasa_interes}% ({simulacion.tipo_tasa})
