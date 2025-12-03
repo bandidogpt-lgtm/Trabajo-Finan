@@ -199,6 +199,14 @@ const currencyFormatter = new Intl.NumberFormat("es-PE", {
   minimumFractionDigits: 2,
 });
 
+const getCurrencyFormatter = (tipoMoneda: "Soles" | "Dólares") =>
+  new Intl.NumberFormat("es-PE", {
+    style: "currency",
+    currency: tipoMoneda === "Soles" ? "PEN" : "USD",
+    minimumFractionDigits: 2,
+  });
+
+
 // === Tasas de conversión de moneda ===
 // 1 sol equivale a 0.30 dólares y el inverso se calcula para regresar a soles.
 const PEN_TO_USD = 0.3;
@@ -2584,17 +2592,26 @@ function SimuladorScreen({
       clienteDni: info.cliente.dni,
       inmuebleId: info.inmueble_id ?? info.inmueble.id,
       inmuebleBusqueda: info.inmueble.nombre_proyecto,
-      valorInmueble: Number(info.inmueble.precio_venta),
+      valorInmueble: 
+        info.tipo_moneda === "Dólares"
+          ? Number((info.inmueble.precio_venta * PEN_TO_USD).toFixed(2))
+          : info.inmueble.precio_venta,
       tipoMoneda: info.tipo_moneda === "Dólares" ? "Dólares" : "Soles",
       clasificacionBbp: info.clasificacion_bono_bbp ?? 0,
       labelBbp:
         info.clasificacion_bono_bbp && info.clasificacion_bono_bbp > 0
           ? "Con Bono"
           : "Sin Bono",
-      montoBono: info.monto_bono_bbp ?? 0,
+      montoBono: 
+       info.tipo_moneda === "Dólares"
+          ? Number(((info.monto_bono_bbp ?? 0) * PEN_TO_USD).toFixed(2))
+          : info.monto_bono_bbp ?? 0,
       cuotaInicial: Number(info.cuota_inicial),
       plazoMeses: info.plazo_meses,
-      montoPrestamoCalculado: Number(info.monto_prestamo),
+      montoPrestamoCalculado: 
+      info.tipo_moneda === "Dólares"
+            ? Number((info.monto_prestamo * PEN_TO_USD).toFixed(2))
+            : Number(info.monto_prestamo),  
       fechaDesembolso: fecha,
       tipoTasa: info.tipo_tasa === "Nominal" ? "Nominal" : "Efectiva",
       plazoTasaInteres: info.plazo_tasa_interes,
@@ -3457,7 +3474,7 @@ function SimuladorScreen({
                         className="px-4 py-3 text-slate-600 whitespace-nowrap"
                       >
                         {typeof celda === "number"
-                          ? currencyFormatter.format(celda)
+                          ? getCurrencyFormatter(form.tipoMoneda).format(celda)
                           : celda}
                       </td>
                     ))}
