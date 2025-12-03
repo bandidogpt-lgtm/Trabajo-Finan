@@ -368,6 +368,7 @@ console.log("✔ Simulación cargada:", simulacion.id_simulacion)
 console.log(COK_TEA)
 console.log(typeof COK_TEA)
     // === TEM del préstamo ===
+// === TEM del préstamo ===
 function calcularTEM(
   TipoTasa: number,
   i: number,
@@ -386,20 +387,36 @@ function calcularTEM(
       default: return (1 + i) ** (1 / 12) - 1
     }
   } else {
-    const m =
-      c === 0 ? 360 :
-      c === 1 ? 24 :
-      c === 2 ? 12 :
-      c === 3 ? 6 :
-      c === 4 ? 4 :
-      c === 5 ? 3 :
-      c === 6 ? 2 : 1
+    const nm =
+      c === 0 ? 1 :
+      c === 1 ? 15 :
+      c === 2 ? 30 :
+      c === 3 ? 60 :
+      c === 4 ? 90 :
+      c === 5 ? 120 :
+      c === 6 ? 180 :
+      360;
+      const pDias =
+      p === 0 ? 1 :
+      p === 1 ? 15 :
+      p === 2 ? 30 :
+      p === 3 ? 60 :
+      p === 4 ? 90 :
+      p === 5 ? 120 :
+      p === 6 ? 180 :
+      360;
+    const m=pDias/nm
+    const tn=360/nm
+        // LOGS
+    console.log("nm (días por capitalización)", nm);
+    console.log("p (periodo destino)", p);
+    console.log("m (p/nm)", m);
+    console.log("tn (360/nm)", tn);
 
-    const TEA = (1 + i / m) ** m - 1
+    const TEA = (1 + i / m) ** tn - 1
     return (1 + TEA) ** (1 / 12) - 1
   }
 }
-
 
     const r = calcularTEM(tipoTasa, i, p, c)
 

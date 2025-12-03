@@ -572,7 +572,7 @@ export default function Home() {
       <HelpAssistant
         steps={tourSteps}
         sectionTours={sectionTours}
-        manualUrl="/manual-usuario.pdf"
+        manualUrl="\ManualUsuarioTecnico.pdf"
         activeSection={activeSection}
         onStepChange={handleTourStepChange}
       />
@@ -919,9 +919,6 @@ function InicioScreen({
             <h3 className="text-xl font-semibold text-slate-900">
               Simulaciones recientes
             </h3>
-            <p className="text-sm text-slate-500">
-              Los valores se muestran solo si la API los entrega.
-            </p>
           </div>
           <input
             value={filtroSimulacion}
@@ -1604,7 +1601,7 @@ function ClientesScreen({
                   required
                 />
               </Field>
-              <Field label="¿Tiene discapacidad?">
+              <Field label="¿Dueño de propiedad?">
                 <select
                   className={inputBaseClasses}
                   value={formValues.duenio_propiedad}
@@ -1620,7 +1617,7 @@ function ClientesScreen({
                 </select>
               </Field>
 
-              <Field label="¿Dueño de propiedad?">
+              <Field label="¿Tiene discapacidad?">
                 <select
                   className={inputBaseClasses}
                   value={formValues.flag_condiciones ? "1" : "0"}
@@ -1961,17 +1958,6 @@ function InmueblesScreen({
                           className="rounded-full bg-brand-100 px-4 py-1 text-brand-700"
                         >
                           Editar
-                        </button>
-                        <button
-                          ref={index === 0 ? imagenBotonRef : undefined}
-                          onClick={() => {
-                            editarInmueble(inmueble);
-                            imagenRef?.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                            imagenRef?.current?.focus();
-                          }}
-                          className="rounded-full bg-blue-100 px-4 py-1 text-blue-700"
-                        >
-                          Imágenes
                         </button>
                         <button
                           onClick={() => eliminarInmueble(inmueble.id)}
