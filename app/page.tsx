@@ -199,6 +199,11 @@ const currencyFormatter = new Intl.NumberFormat("es-PE", {
   minimumFractionDigits: 2,
 });
 
+// === Tasas de conversión de moneda ===
+// 1 sol equivale a 0.30 dólares y el inverso se calcula para regresar a soles.
+const PEN_TO_USD = 0.3;
+const USD_TO_PEN = 1 / PEN_TO_USD;
+
 const inputBaseClasses =
   "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-700 focus:border-brand-400 focus:outline-none focus:ring-0";
 
@@ -2327,6 +2332,8 @@ function SimuladorScreen({
   }, []);
 
   useEffect(() => {
+    // Recalcula el préstamo neto cada vez que cambian los montos que lo componen
+    // para mantener el dato sincronizado sin intervención manual.
     const cuotaInicialMonto = (form.valorInmueble * form.cuotaInicial) / 100;
     const costosInicialesNumber = parseCurrency(form.costosIniciales);
     const monto =
@@ -2438,14 +2445,19 @@ function SimuladorScreen({
       etiqueta = "BBP Tradicional";
     }
 
+    const montoAjustado =
+      form.tipoMoneda === "Dólares"
+        ? Number((monto * PEN_TO_USD).toFixed(2))
+        : monto;
+
     setForm(prev => ({
       ...prev,
       clasificacionBbp: clasificacion,
-      montoBono: monto,
+      montoBono: montoAjustado,
       labelBbp: etiqueta
     }));
 
-  }, [clientes, form.clienteId, form.inmuebleId, inmuebles]);
+  }, [clientes, form.clienteId, form.inmuebleId, form.tipoMoneda, inmuebles]);
 
   async function obtenerClientes() {
     try {
@@ -2539,7 +2551,11 @@ function SimuladorScreen({
       ...prev,
       inmuebleId: inmueble.id,
       inmuebleBusqueda: inmueble.nombre_proyecto, // ← Texto final fijo
-      valorInmueble: inmueble.precio_venta,
+      // Se convierte el valor según la moneda activa para que el cálculo quede alineado.
+      valorInmueble:
+        prev.tipoMoneda === "Dólares"
+          ? Number((inmueble.precio_venta * PEN_TO_USD).toFixed(2))
+          : inmueble.precio_venta,
     }));
   }
 
@@ -2548,6 +2564,28 @@ function SimuladorScreen({
     value: SimulacionForm[Key]
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  /**
+   * Ajusta los montos monetarios dependientes cuando se cambia el tipo de moneda.
+   * Con esto evitamos recalcular manualmente cada campo y mantenemos la coherencia
+   * entre valor de inmueble, bono y monto del préstamo en Soles o Dólares.
+   */
+  function manejarCambioMoneda(nextCurrency: "Soles" | "Dólares") {
+    setForm((prev) => {
+      if (prev.tipoMoneda === nextCurrency) return prev;
+
+      const factor = nextCurrency === "Dólares" ? PEN_TO_USD : USD_TO_PEN;
+      const convertir = (valor: number) => Number((valor * factor).toFixed(2));
+
+      return {
+        ...prev,
+        tipoMoneda: nextCurrency,
+        valorInmueble: convertir(prev.valorInmueble),
+        montoBono: convertir(prev.montoBono),
+        montoPrestamoCalculado: convertir(prev.montoPrestamoCalculado),
+      };
+    });
   }
 
   function prepararFormularioDesdeInfo(info: SimulacionPersistida) {
@@ -3036,12 +3074,14 @@ function SimuladorScreen({
     XLSX.writeFile(wb, "SimulacionCredito.xlsx", { compression: true });
   }
 
+  // Convierte strings con separadores de miles en números seguros para cálculos.
   const parseCurrency = (value: string | number) => {
     if (value === null || value === undefined) return 0;
     const numeric = Number(String(value).replace(/,/g, ""));
     return Number.isFinite(numeric) ? numeric : 0;
   };
 
+  // Da formato con comas mientras preserva decimales y entrada parcial del usuario.
   const formatCurrency = (value: number | string) => {
     if (value === null || value === undefined) return "";
 
@@ -3772,9 +3812,9 @@ function SimuladorScreen({
             <Field label="Tipo de Moneda">
               <select
                 value={form.tipoMoneda}
+                // Cambia la moneda y convierte los montos visibles en tiempo real.
                 onChange={(e) =>
-                  actualizarForm(
-                    "tipoMoneda",
+                  manejarCambioMoneda(
                     e.target.value as SimulacionForm["tipoMoneda"]
                   )
                 }
